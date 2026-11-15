@@ -198,7 +198,7 @@ function Flag({ country }: { country: Pick<Country, "id" | "name"> }) {
   return (
     <img
       className="flag"
-      src={`/assets/flags/${country.id.toLowerCase()}.svg`}
+      src={`${import.meta.env.BASE_URL}assets/flags/${country.id.toLowerCase()}.svg`}
       alt={`${country.name}国旗`}
     />
   );

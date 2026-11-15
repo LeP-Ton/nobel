@@ -22,6 +22,22 @@ npm test
 
 `build`同时执行严格TypeScript检查与生产构建，静态结果在`dist/`。配置加载采用Node原生TypeScript支持，避免Windows受限环境中配置打包扫描父目录失败。
 
+## GitHub 与 Pages
+
+- 代码仓库：https://github.com/LeP-Ton/nobel
+- 在线游戏：https://lep-ton.github.io/nobel/
+
+推送到`main`后，`.github/workflows/pages.yml`会安装锁定依赖、运行测试、执行类型检查与生产构建，并部署到GitHub Pages。也可在GitHub Actions中手动运行“部署 GitHub Pages”。Pages发布来源使用GitHub Actions。
+
+工作流按Pages配置设置资源基础路径，不需要修改本地或Sites的根路径构建。手动核对项目子路径构建时运行：
+
+```sh
+npm run build -- --base=/nobel/
+npm run preview -- --base=/nobel/
+```
+
+不同域名的浏览器存档不共享；从原站迁移进度时，请先导出JSON，再在新站导入。
+
 ## 试玩流程
 
 1. 选择美国或中国；开局继承三项配置了人才的科研项目。

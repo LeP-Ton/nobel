@@ -15,11 +15,12 @@
 - `src/ResearchCulturePanel.tsx`：科研制度改革预演、费用和效率变化。
 - `public/assets/`：随生产包发布的游戏美术资源。不得引用只存在于Codex生成目录的素材。
 - `tests/`：引擎功能与存档回归测试。
+- `.github/workflows/pages.yml`：main推送后的测试、构建和GitHub Pages部署。
 - `.agentdocs/`：语义变更记录和后续TODO。
 
 ## 运行与验证
 
-首次运行`npm install`，开发`npm run dev`，类型检查与构建`npm run build`，引擎测试`npm test`。部署为Sites静态站，配置见`.openai/hosting.json`。
+首次运行`npm install`，开发`npm run dev`，类型检查与构建`npm run build`，引擎测试`npm test`。支持Sites根路径静态站（`.openai/hosting.json`）和GitHub Pages（`.github/workflows/pages.yml`）。Pages工作流从平台配置获取基础路径并传给构建；动态公共资源使用`import.meta.env.BASE_URL`，不可硬编码为根路径。普通本地与Sites构建继续使用默认`/`。
 
 ## 检索方法
 
