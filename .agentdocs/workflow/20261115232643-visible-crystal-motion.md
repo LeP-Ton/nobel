@@ -20,9 +20,13 @@
 - [x] CSS兼容模式：390px视口自动使用CSS，animated=true、晶格透明度1；实测亮度滤镜从0.601变为1.564、色相由-17.97度至15.06度，旋转矩阵和光束偏移持续变化；页面无横向溢出
 - [x] 关闭动态：animated=false，画布、光束和兼容晶格透明度均为0，旋转animationName=none；重新开启正常，控制台无警告或错误
 - [x] 默认与Pages子路径构建、20/20既有测试通过
-- [ ] 正式部署完成
+- [x] 正式部署完成：[应用提交d31fb77](https://github.com/LeP-Ton/nobel/commit/d31fb77ff7785614f96878fc92930f6a8e4d66e7)，[Actions运行43731028407](https://github.com/LeP-Ton/nobel/actions/runs/43731028407)成功，线上HTML/JS/CSS均返回200并包含增强动效
 
 真实录制动图：项目同级`outputs/nobel-crystal-motion-v2.gif`；全屏原始帧：`outputs/nobel-crystal-motion-v2.jpg`。GIF是实际页面片段，不是概念效果图。
+
+正式预览：https://lep-ton.github.io/nobel/?v=d31fb77 。链接带版本标记，便于从仍打开的旧页面重新载入。
+
+发布沿用上一轮记录的GitHub数据API路径，逐一校对对象哈希并以非强制方式更新main，保留本地提交与完整历史。完成记录追加纯文档提交并跳过重复CI。
 
 ## 风险与范围
 
