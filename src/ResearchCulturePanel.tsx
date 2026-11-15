@@ -252,7 +252,7 @@ export default function ResearchCulturePanel({ world, onChange }: Props) {
           <div className="rc-principle">
             <Sparkles size={17} />
             <p>
-              制度影响项目研究效率；科学家创新能力单独计算。改革可以调整前沿探索、成熟研发与工程化的效率。
+              改革可以调整前沿探索、成熟研发与工程化的效率。
             </p>
           </div>
         </aside>

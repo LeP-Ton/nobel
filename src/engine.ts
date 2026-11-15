@@ -273,7 +273,7 @@ export function createWorld(playerId: string, seed = 20260101): World {
     type: "world",
     country: playerId,
     title: "科研制度开局情景已载入",
-    description: `当前研究自主性 ${playerOf(world).researchCulture.autonomy}、长期考核权重 ${playerOf(world).researchCulture.horizon}、工程组织执行 ${playerOf(world).researchCulture.execution}；前沿探索 ×${effects.frontier}，成熟研发 ×${effects.mature}，工程化 ×${effects.engineering}。这是可改革的游戏情景，科学家创新能力直接记录在人才档案中；可在国家战略中调整项目效率。`,
+    description: `当前研究自主性 ${playerOf(world).researchCulture.autonomy}、长期考核权重 ${playerOf(world).researchCulture.horizon}、工程组织执行 ${playerOf(world).researchCulture.execution}；前沿探索 ×${effects.frontier}，成熟研发 ×${effects.mature}，工程化 ×${effects.engineering}。这是可改革的游戏情景，可在国家战略中调整项目效率。`,
   });
   return world;
 }
