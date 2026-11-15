@@ -131,6 +131,7 @@ export interface AnnualReport {
 }
 export interface World {
   version: 1;
+  rulesVersion: 2;
   seed: number;
   date: string;
   player: string;

@@ -207,8 +207,8 @@ export default function CommandCenter({
             <div className="hc-doctrine-effects">
               <div>
                 <Sparkles size={13} />
-                <span>创新发挥</span>
-                <b>×{format(effects.innovation, 2)}</b>
+                <span>前沿探索</span>
+                <b>×{format(effects.frontier, 2)}</b>
               </div>
               <div>
                 <Gauge size={13} />

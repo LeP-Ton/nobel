@@ -588,7 +588,7 @@ button {
   color: #dbe6e6;
 }
 .scientist-metrics > div:last-child {
-  grid-column: 1/-1;
+  grid-column: auto;
   padding: 12px;
   background: #c5ad7b0a;
   border: 1px solid #9b8a6345;

@@ -53,29 +53,18 @@ function event(world: World, value: Omit<GameEvent, "id" | "date">) {
   if (world.events.length > 500) world.events.length = 500;
 }
 
-// 同一套环境公式用于所有国家；科研人员潜力与制度下的实际发挥分别计算。
+// 制度只修正项目推进与工程化效率，科研人员直接使用创新能力数值。
 export function cultureEffects(country: Country): {
-  innovation: number;
   frontier: number;
   mature: number;
   engineering: number;
 } {
   const { autonomy, horizon, execution } = country.researchCulture;
   return {
-    innovation: round(0.5 + autonomy * 0.003 + horizon * 0.0025, 4),
     frontier: round(0.58 + autonomy * 0.0032 + horizon * 0.0028, 4),
     mature: round(0.82 + execution * 0.0025, 4),
     engineering: round(0.75 + execution * 0.004, 4),
   };
-}
-
-export function effectiveInnovation(
-  scientist: Scientist,
-  country: Country,
-): number {
-  return round(
-    clamp(scientist.innovation * cultureEffects(country).innovation),
-  );
 }
 
 export function updateResearchCulture(
@@ -112,7 +101,7 @@ export function updateResearchCulture(
     type: "world",
     country: next.player,
     title: `科研制度改革：${label}`,
-    description: `将${label}从 ${previous} 调整为 ${nextValue}，支付 ${cost} 十亿美元组织调整经费。创新发挥、前沿探索和工程执行按统一规则重新计算；这些参数是可改革游戏情景，不是现实统计。`,
+    description: `将${label}从 ${previous} 调整为 ${nextValue}，支付 ${cost} 十亿美元组织调整经费。前沿探索、成熟研发和工程转化效率按统一规则重新计算；这些参数是可改革游戏情景，不是现实统计。`,
   });
   return { world: next };
 }
@@ -203,6 +192,7 @@ export function createWorld(playerId: string, seed = 20260101): World {
     throw new Error("当前仅开放美国和中国。");
   const world: World = {
     version: 1,
+    rulesVersion: 2,
     seed: seed >>> 0,
     date: "2026-01-01",
     player: playerId,
@@ -283,7 +273,7 @@ export function createWorld(playerId: string, seed = 20260101): World {
     type: "world",
     country: playerId,
     title: "科研制度开局情景已载入",
-    description: `当前研究自主性 ${playerOf(world).researchCulture.autonomy}、长期考核权重 ${playerOf(world).researchCulture.horizon}、工程组织执行 ${playerOf(world).researchCulture.execution}；创新发挥 ×${effects.innovation}，前沿探索 ×${effects.frontier}，工程化 ×${effects.engineering}。这是可改革的游戏情景，个人创新潜力保持独立；可在国家战略中调整。`,
+    description: `当前研究自主性 ${playerOf(world).researchCulture.autonomy}、长期考核权重 ${playerOf(world).researchCulture.horizon}、工程组织执行 ${playerOf(world).researchCulture.execution}；前沿探索 ×${effects.frontier}，成熟研发 ×${effects.mature}，工程化 ×${effects.engineering}。这是可改革的游戏情景，科学家创新能力直接记录在人才档案中；可在国家战略中调整项目效率。`,
   });
   return world;
 }
@@ -668,10 +658,7 @@ function researchMonth(world: World) {
       if (
         random(world) <
         0.16 +
-          average(
-            scientists.map((item) => effectiveInnovation(item, country)),
-          ) /
-            300 +
+          average(scientists.map((item) => item.innovation)) / 300 +
           effects.frontier * 0.04
       ) {
         project.status = "research";
@@ -703,9 +690,7 @@ function researchMonth(world: World) {
     const previous = project.progress;
     project.progress = round(clamp(project.progress + step));
     if (project.progress >= 100) {
-      const innovation = average(
-        scientists.map((item) => effectiveInnovation(item, country)),
-      );
+      const innovation = average(scientists.map((item) => item.innovation));
       if (random(world) < (template.risk / 350) * (1.2 - innovation / 200)) {
         project.status = "failed";
         project.log.unshift(`${world.date} 关键实验未能复现，项目失败。`);
@@ -844,7 +829,7 @@ function aiMonth(world: World) {
             (1 - template.difficulty / 300) *
             effects.mature;
           if (country.progress[field] >= 100) {
-            if (random(world) < template.risk / (400 * effects.innovation)) {
+            if (random(world) < template.risk / (400 * effects.frontier)) {
               country.progress[field] = 65;
               event(world, {
                 type: "world",
@@ -1111,6 +1096,7 @@ function parseGame(raw: string): World {
     FIELD_IDS.every((field) => finite((value as Fields)[field], 0, max));
   if (
     world.version !== 1 ||
+    (world.rulesVersion !== undefined && world.rulesVersion !== 2) ||
     !finite(world.seed, 0, 4294967295) ||
     !Number.isInteger(world.seed) ||
     typeof world.date !== "string" ||
@@ -1132,7 +1118,7 @@ function parseGame(raw: string): World {
   )
     return invalid();
   for (const country of world.countries) {
-    // v1 旧存档没有制度参数时补齐情景默认值，保留科研进度和个人潜力。
+    // v1 旧存档没有制度参数时补齐情景默认值，保留科研进度与已保存的人才属性。
     if (country.researchCulture === undefined) {
       const initial = COUNTRIES.find((item) => item.id === country.id);
       if (!initial) return invalid();
@@ -1294,6 +1280,24 @@ function parseGame(raw: string): World {
       )
     )
       return invalid();
+  // 旧存档仅迁移仍等于旧开局值的已知角色，自定义属性与海外任职状态均保留。
+  // 规则版本随存档保存，后续读档不会重复下调。
+  if (world.rulesVersion === undefined) {
+    const previousInnovation: Record<string, number> = {
+      "cn-s1": 92,
+      "cn-s2": 89,
+      "cn-s3": 91,
+      "cn-s4": 85,
+      "cn-s5": 93,
+    };
+    for (const scientist of world.scientists) {
+      if (scientist.innovation === previousInnovation[scientist.id]) {
+        const initial = SCIENTISTS.find((item) => item.id === scientist.id);
+        if (initial) scientist.innovation = initial.innovation;
+      }
+    }
+    world.rulesVersion = 2;
+  }
   // 国家名称、坐标和来源是固定规则资料，不信任存档中的可替换元数据。
   world.countries = world.countries.map((country) => {
     const fixed = COUNTRIES.find((seed) => seed.id === country.id)!;

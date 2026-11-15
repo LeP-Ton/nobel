@@ -76,7 +76,6 @@ import {
   startProject,
   terminateProject,
   updateBudget,
-  effectiveInnovation,
 } from "./engine";
 import CommandCenter from "./CommandCenter";
 import ResearchCulturePanel from "./ResearchCulturePanel";
@@ -647,7 +646,7 @@ function App() {
                   </div>
                   <p>
                     {c.researchCulture.autonomy < 45
-                      ? "短期成果考核较强，工程攻坚高效；自主探索空间与创新发挥受到限制。"
+                      ? "短期成果考核较强，工程攻坚高效；自主研究空间与前沿探索受到限制。"
                       : "自主选题与长期积累优先，为原创问题和前沿研究保留空间。"}
                   </p>
                   <dl>
@@ -1176,7 +1175,7 @@ function App() {
                   <div className="info-banner">
                     <GraduationCap size={20} />
                     <span>
-                      重点科学家为虚构人物。创新潜力属于个人，当前创新发挥受科研制度影响；普通科研人员由国家人才池聚合管理。
+                      重点科学家为虚构人物，科研计算直接使用其创新能力；普通科研人员由国家人才池聚合管理。
                     </span>
                     <button
                       className="text-button"
@@ -1223,13 +1222,9 @@ function App() {
                             <div className="scientist-metrics">
                               {[
                                 { n: "科研能力", v: s.ability },
-                                { n: "创新潜力", v: s.innovation },
                                 { n: "学术声望", v: s.reputation },
                                 { n: "管理能力", v: s.management },
-                                {
-                                  n: "当前创新发挥",
-                                  v: effectiveInnovation(s, country),
-                                },
+                                { n: "创新能力", v: s.innovation },
                               ].map((m) => (
                                 <div key={m.n}>
                                   <span>{m.n}</span>
@@ -1546,7 +1541,7 @@ function App() {
                           金额统一为十亿美元（B）；人口为百万人；科研人员为千人。八国为首版模拟范围，奖项不直接等同于国家科技实力。
                         </p>
                         <p>
-                          科研制度是可改革的游戏情景。研究自主性、长期评价权重和工程组织执行共同影响创新发挥、前沿探索与工程化；所有国家使用相同规则，个人创新潜力独立保存。
+                          科学家创新能力为人物属性；制度影响项目前沿探索、成熟研发与工程化效率。科研制度是可改革的游戏情景，所有国家使用相同规则。
                         </p>
                       </div>
                       <div className="source-list">

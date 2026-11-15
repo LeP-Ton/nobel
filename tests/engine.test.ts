@@ -8,7 +8,6 @@ import {
   commercialize,
   createWorld,
   cultureEffects,
-  effectiveInnovation,
   investInstitution,
   loadGame,
   ranked,
@@ -279,38 +278,46 @@ test("年度汇总字段缺失会被拒绝，国家固定元数据从规则资�
   assert.equal(restored.countries[0].name, COUNTRIES[0].name);
 });
 
-test("开局制度情景降低当前创新发挥，保留科学家个体创新潜力", () => {
+test("中国开局直接使用较低创新能力，其他国家人物数值保持原设定", () => {
   const cn = createWorld("CN");
   const us = createWorld("US");
   const china = cn.countries.find((country) => country.id === "CN")!;
-  const america = us.countries.find((country) => country.id === "US")!;
-  const scientist = cn.scientists.find((person) => person.country === "CN")!;
-  const originalPotential = scientist.innovation;
   assert.deepEqual(china.researchCulture, {
     autonomy: 32,
     horizon: 28,
     execution: 88,
   });
+  assert.equal(cn.rulesVersion, 2);
   assert.equal(cn.policy.basic, 15);
   assert.equal(us.policy.basic, 30);
-  assert.ok(effectiveInnovation(scientist, china) < originalPotential * 0.7);
-  assert.ok(effectiveInnovation(scientist, america) > originalPotential * 0.9);
-  assert.equal(scientist.innovation, originalPotential);
+  assert.deepEqual(
+    cn.scientists
+      .filter((person) => person.id.startsWith("cn-s"))
+      .map((person) => person.innovation),
+    [62, 58, 64, 55, 63],
+  );
+  assert.deepEqual(
+    cn.scientists
+      .filter((person) => person.id.startsWith("us-s"))
+      .map((person) => person.innovation),
+    [94, 84, 90, 88, 92],
+  );
+  assert.deepEqual(us.scientists, cn.scientists);
   assert.ok(
     cn.events.some((item) => item.description.includes("可改革的游戏情景")),
   );
 });
 
-test("创新和执行使用统一制度公式，不依赖国家或科学家国籍", () => {
+test("项目效率使用统一制度公式，不再产生第二套科学家创新数值", () => {
   const world = createWorld("CN");
   const china = world.countries.find((country) => country.id === "CN")!;
   const samePolicy = { ...china, id: "US", name: "同制度对照国家" };
-  const scientist = world.scientists[0];
   assert.deepEqual(cultureEffects(china), cultureEffects(samePolicy));
-  assert.equal(
-    effectiveInnovation(scientist, china),
-    effectiveInnovation({ ...scientist, country: "CN" }, samePolicy),
-  );
+  assert.deepEqual(Object.keys(cultureEffects(china)).sort(), [
+    "engineering",
+    "frontier",
+    "mature",
+  ]);
 });
 
 test("科研制度改革实际支付财政成本，重复切换不会返还且非法参数被拒绝", () => {
@@ -321,9 +328,7 @@ test("科研制度改革实际支付财政成本，重复切换不会返还且�
   assert.equal(result.error, undefined);
   const after = result.world.countries.find((item) => item.id === "CN")!;
   assert.ok(after.treasury < country.treasury);
-  assert.ok(
-    cultureEffects(after).innovation > cultureEffects(country).innovation,
-  );
+  assert.ok(cultureEffects(after).frontier > cultureEffects(country).frontier);
   assert.deepEqual(result.world.scientists, world.scientists);
   assert.equal(saveGame(world), before);
   assert.strictEqual(
@@ -343,7 +348,7 @@ test("科研制度改革实际支付财政成本，重复切换不会返还且�
   assert.ok(updateResearchCulture(bankrupt, "horizon", 90).error);
 });
 
-test("长期自主研究环境真实改变前沿科研进度和成果质量", () => {
+test("长期自主研究环境改变前沿进度，不再折算科学家的创新能力", () => {
   let world = createWorld("CN", 132);
   const initial = world.projects.find((item) => item.field === "ai")!;
   world = terminateProject(world, initial.id);
@@ -369,14 +374,15 @@ test("长期自主研究环境真实改变前沿科研进度和成果质量", ()
   )!.progress;
   const openProgress = advanceDays(open, 31).projects.at(-1)!.progress;
   assert.ok(openProgress > restrictedProgress * 1.3);
-  // 控制起点、资金与随机种子，隔离制度对成果质量的作用。
+  // 统一创新能力后，相同团队与随机条件的成果质量不再按制度二次折算。
   restricted.projects.at(-1)!.progress = 99;
   open.projects.at(-1)!.progress = 99;
   const restrictedResult = advanceDays(restricted, 31).projects.at(-1)!;
   const openResult = advanceDays(open, 31).projects.at(-1)!;
   assert.equal(restrictedResult.status, "breakthrough");
   assert.equal(openResult.status, "breakthrough");
-  assert.ok(openResult.quality > restrictedResult.quality);
+  assert.equal(openResult.quality, restrictedResult.quality);
+  assert.deepEqual(open.scientists, restricted.scientists);
 });
 
 test("工程组织执行对成熟技术、工程化和AI同样有真实增益", () => {
@@ -437,4 +443,68 @@ test("旧v1存档迁移补齐制度而不重置进度、人才、日期或原政
     Reflect.set(broken.countries[0], "researchCulture", culture);
     assert.throws(() => loadGame(JSON.stringify(broken)), /存档格式/);
   }
+});
+
+test("科研成果质量直接消费人才档案中的创新能力", () => {
+  const low = createWorld("CN", 132);
+  const high = structuredClone(low);
+  const projectId = low.projects[0].id;
+  const scientistId = low.projects[0].scientists[0];
+  low.scientists.find((person) => person.id === scientistId)!.innovation = 20;
+  high.scientists.find((person) => person.id === scientistId)!.innovation = 90;
+  low.projects[0].progress = 99;
+  high.projects[0].progress = 99;
+  const weak = advanceDays(low, 31).projects.find(
+    (project) => project.id === projectId,
+  )!;
+  const strong = advanceDays(high, 31).projects.find(
+    (project) => project.id === projectId,
+  )!;
+  assert.equal(weak.status, "breakthrough");
+  assert.equal(strong.status, "breakthrough");
+  assert.ok(strong.quality > weak.quality + 20);
+});
+
+test("旧存档只迁移未调整的中国初始创新能力，保留自定义和跨国任职", () => {
+  const expected = advanceDays(createWorld("US", 94), 180);
+  expected.policy.basic = 25;
+  const moved = expected.scientists.find((person) => person.id === "cn-s2")!;
+  moved.country = "US";
+  moved.institution = "us-mit";
+  expected.scientists.find((person) => person.id === "cn-s3")!.innovation = 44;
+  const legacy = structuredClone(expected);
+  Reflect.deleteProperty(legacy, "rulesVersion");
+  const previous: Record<string, number> = {
+    "cn-s1": 92,
+    "cn-s2": 89,
+    "cn-s4": 85,
+    "cn-s5": 93,
+  };
+  for (const person of legacy.scientists)
+    if (previous[person.id] !== undefined)
+      person.innovation = previous[person.id];
+  const restored = loadGame(JSON.stringify(legacy));
+  assert.deepEqual(restored, expected);
+  assert.deepEqual(loadGame(saveGame(restored)), restored);
+  assert.deepEqual(advanceDays(restored, 90), advanceDays(expected, 90));
+  const revised = structuredClone(restored);
+  revised.scientists.find((person) => person.id === "cn-s1")!.innovation = 92;
+  assert.equal(
+    loadGame(saveGame(revised)).scientists.find(
+      (person) => person.id === "cn-s1",
+    )!.innovation,
+    92,
+  );
+});
+
+test("未知或损坏的规则版本被拒绝，缺失规则版本可兼容", () => {
+  const world = createWorld("CN");
+  for (const version of [null, 0, 1, 3, "2", false]) {
+    const broken = structuredClone(world);
+    Reflect.set(broken, "rulesVersion", version);
+    assert.throws(() => loadGame(JSON.stringify(broken)), /存档格式/);
+  }
+  const legacy = structuredClone(world);
+  Reflect.deleteProperty(legacy, "rulesVersion");
+  assert.deepEqual(loadGame(JSON.stringify(legacy)), world);
 });

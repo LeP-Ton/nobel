@@ -28,7 +28,7 @@ const AXES = [
     low: "任务驱动",
     high: "自主探索",
     icon: FlaskConical,
-    description: "为研究团队保留自主选题空间，提高创新发挥与前沿探索效率。",
+    description: "为研究团队保留自主选题空间，提高前沿探索效率。",
   },
   {
     key: "horizon",
@@ -67,12 +67,6 @@ const PRESETS: { name: string; description: string; value: Culture }[] = [
 ];
 
 const EFFECTS = [
-  {
-    key: "innovation",
-    name: "创新发挥",
-    detail: "个人创新潜力的环境修正",
-    icon: Sparkles,
-  },
   {
     key: "frontier",
     name: "前沿探索",
@@ -258,7 +252,7 @@ export default function ResearchCulturePanel({ world, onChange }: Props) {
           <div className="rc-principle">
             <Sparkles size={17} />
             <p>
-              制度影响创新的发挥，不决定个人天赋。科学家保留各自的创新潜力，改革可改善其研究环境。
+              制度影响项目研究效率；科学家创新能力单独计算。改革可以调整前沿探索、成熟研发与工程化的效率。
             </p>
           </div>
         </aside>
