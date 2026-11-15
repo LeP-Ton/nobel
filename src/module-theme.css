@@ -395,21 +395,6 @@
   );
   pointer-events: none;
 }
-.app[data-screen="game"][data-page="talent"]
-  .scientist-metrics
-  > div:last-child {
-  padding: 14px;
-  background: linear-gradient(100deg, #c9a65e11, #19334033);
-  border: 1px solid #8b795550;
-  box-shadow: inset 2px 0 0 #d5b473;
-}
-.app[data-screen="game"][data-page="talent"]
-  .scientist-metrics
-  > div:last-child
-  b {
-  color: var(--module-gold);
-  font-size: 27px;
-}
 .app[data-screen="game"][data-page="talent"] .scientist-assignment {
   color: #a7bdc7;
   font-size: 11px;
@@ -1279,11 +1264,6 @@
   }
   .app[data-screen="game"][data-page="talent"] .scientist-metrics b {
     font-size: 24px;
-  }
-  .app[data-screen="game"][data-page="talent"]
-    .scientist-metrics
-    > div:last-child {
-    padding: 13px;
   }
   .app[data-screen="game"][data-page="institutions"] .institution-card h2 {
     font-size: 23px;

@@ -587,15 +587,6 @@ button {
   font-size: 20px;
   color: #dbe6e6;
 }
-.scientist-metrics > div:last-child {
-  grid-column: auto;
-  padding: 12px;
-  background: #c5ad7b0a;
-  border: 1px solid #9b8a6345;
-}
-.scientist-metrics > div:last-child b {
-  color: var(--gold);
-}
 .scientist-assignment {
   font-size: 11px;
   margin-top: 22px;
