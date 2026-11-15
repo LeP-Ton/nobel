@@ -12,7 +12,7 @@
 - `src/App.tsx`：菜单、指挥中心及各管理面板。
 - `src/CommandCenter.tsx`：无地图的国家科研指挥舱、战略仪表、科研战线与指令队列。
 - `src/ScienceCore.tsx`：实时五领域科技依赖网络、只读显示模式与领域导航；图像仅承担科研装置环境美术。
-- `src/LaboratoryScene.tsx`、`src/laboratory-renderer.ts`：主菜单与科研中枢共享的装置动画和装饰相机；图形帧循环与世界模拟分离，支持静态降级与减少动态偏好。
+- `src/LaboratoryScene.tsx`、`src/laboratory-renderer.ts`：主菜单与科研中枢共享的装置动画和装饰相机；图形帧循环与世界模拟分离。WebGL不可用或小屏幕使用CSS/SVG兼容动效，关闭动态或减少动态偏好时静态显示。
 - `src/ResearchCulturePanel.tsx`：科研制度改革预演、费用和效率变化。
 - `public/assets/`：随生产包发布的游戏美术资源。不得引用只存在于Codex生成目录的素材。
 - `tests/`：引擎功能与存档回归测试。

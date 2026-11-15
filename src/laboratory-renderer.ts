@@ -34,7 +34,21 @@ uniform vec2 u_uvScale;
 uniform vec2 u_uvOffset;
 uniform vec4 u_phase;
 uniform float u_strength;
+uniform float u_imageAspect;
 varying vec2 v_screen;
+
+float cyanEnergy(vec3 color) {
+  float chroma = smoothstep(0.025, 0.16, min(color.g, color.b) - color.r);
+  float light = smoothstep(0.08, 0.42, max(color.g, color.b));
+  return chroma * light;
+}
+
+float inwardPulse(float distance, float phase) {
+  // 正向增加相位，会让等相位光带沿绝对距离减小的方向流向中央。
+  float position = fract(distance * 3.8 + phase);
+  float width = (position - 0.5) / 0.135;
+  return exp(-width * width);
+}
 
 void main() {
   vec2 uv = v_screen * u_uvScale + u_uvOffset;
@@ -44,36 +58,66 @@ void main() {
   }
 
   vec4 original = texture2D(u_image, uv);
-  // 椭圆只覆盖原图中的中央晶格，不让外层金属环参与折射或发光。
-  vec2 local = (uv - vec2(0.643, 0.452)) / vec2(0.105, 0.18);
-  float ellipse = 1.0 - smoothstep(0.64, 1.0, length(local));
-  float cyan = smoothstep(0.045, 0.20, min(original.g, original.b) - original.r);
-  float luminance = max(original.g, original.b);
-  float crystal = ellipse * cyan * smoothstep(0.16, 0.48, luminance);
-  if (crystal <= 0.0 || u_strength <= 0.0) {
+  if (u_strength <= 0.0) {
     gl_FragColor = original;
     return;
   }
-  float influence = crystal * u_strength;
 
-  // 仅做不足一个原图像素量级的折射，保留晶格细节及背景的稳定性。
-  vec2 ripple = vec2(
-    sin(local.y * 17.0 + local.x * 3.0 - u_phase.y),
-    cos(local.x * 19.0 - local.y * 4.0 + u_phase.z)
-  );
-  vec2 distortedUv = uv + ripple * vec2(0.00048, 0.00064) * influence;
-  vec3 refracted = texture2D(u_image, distortedUv).rgb;
-  vec3 color = mix(original.rgb, refracted, influence);
+  vec2 center = vec2(0.643, 0.452);
+  vec2 delta = uv - center;
+  vec2 local = delta / vec2(0.105, 0.18);
+  float ellipse = 1.0 - smoothstep(0.84, 1.03, length(local));
 
+  // 先按源图像素比例旋转采样，避免宽屏纹理中的晶格被挤压成椭圆。
+  float angle = u_phase.y;
+  float cosine = cos(angle);
+  float sine = sin(angle);
+  vec2 pixelOffset = vec2(delta.x * u_imageAspect, delta.y);
+  vec2 rotatedOffset = mat2(cosine, -sine, sine, cosine) * pixelOffset;
+  vec2 rotatedUv = center + vec2(rotatedOffset.x / u_imageAspect, rotatedOffset.y);
+  vec3 rotated = original.rgb;
+  float originalCrystal = cyanEnergy(original.rgb);
+  float rotatedCrystal = 0.0;
+  if (ellipse > 0.0) {
+    rotated = texture2D(u_image, rotatedUv).rgb;
+    rotatedCrystal = cyanEnergy(rotated);
+  }
+
+  // 原、新晶格的并集都参与替换，旧方向的亮线不会作为半透明残影留在底图上。
+  // 只提取青绿结构，外围灰色金属环从始至终沿原UV采样。
+  float featureUnion = smoothstep(0.045, 0.28, max(originalCrystal, rotatedCrystal));
+  float replacement = ellipse * featureUnion;
+  vec3 color = mix(original.rgb, rotated, replacement);
+
+  float crystal = ellipse * rotatedCrystal;
   float breathing = 0.5 + 0.5 * sin(u_phase.x);
-  float flowPosition = fract(local.y * 0.31 + local.x * 0.13 - u_phase.w);
-  float ribbon = exp(-pow((flowPosition - 0.5) / 0.075, 2.0));
-  float brightLattice = smoothstep(0.32, 0.86, luminance);
-  float flow = ribbon * (0.25 + 0.75 * brightLattice);
-  // 光流沿已有青绿晶格掠过；低幅度慢呼吸避免变成闪烁的独立光斑。
-  float glow = (0.009 + breathing * 0.018 + flow * 0.045) * influence;
-  color += vec3(0.12, 0.78, 0.69) * glow;
-  color += original.rgb * (breathing * 0.012 + flow * 0.022) * influence;
+  vec3 crystalHue = mix(vec3(0.14, 0.56, 1.0), vec3(0.10, 1.0, 0.57), breathing);
+  float crystalValue = max(rotated.r, max(rotated.g, rotated.b));
+  float coreFlow = inwardPulse(length(local) * 0.7, u_phase.w);
+  vec3 breathingColor = mix(rotated, crystalHue * crystalValue, 0.57);
+  breathingColor *= mix(0.55, 1.60, breathing);
+  breathingColor += crystalHue * (0.045 + 0.16 * breathing + 0.12 * coreFlow);
+  color = mix(color, breathingColor, crystal * u_strength);
+
+  // 源图横、竖光束独立遮罩：只照亮已有管道的青绿像素，不让脉冲横扫金属。
+  float horizontalAxis = 1.0 - smoothstep(0.007, 0.024, abs(uv.y - 0.454));
+  float horizontalExtent = smoothstep(0.423, 0.45, uv.x)
+    * (1.0 - smoothstep(0.842, 0.869, uv.x));
+  float verticalAxis = 1.0 - smoothstep(0.005, 0.015, abs(uv.x - 0.643));
+  float verticalExtent = smoothstep(0.18, 0.207, uv.y)
+    * (1.0 - smoothstep(0.676, 0.71, uv.y));
+  float horizontalBeam = horizontalAxis * horizontalExtent;
+  float verticalBeam = verticalAxis * verticalExtent;
+  float beam = max(horizontalBeam, verticalBeam) * originalCrystal * (1.0 - ellipse * 0.9);
+  float horizontalFlow = inwardPulse(abs(delta.x) / 0.25, u_phase.w);
+  float verticalFlow = inwardPulse(abs(delta.y) / 0.28, u_phase.w + 0.23);
+  float pulse = max(horizontalFlow * horizontalBeam, verticalFlow * verticalBeam);
+  vec3 beamHue = mix(vec3(0.12, 0.64, 1.0), vec3(0.08, 1.0, 0.75), breathing * 0.7);
+  // 明确的光束行进由外层SVG承担，这里补充管壁反射，避免两层高亮叠白。
+  vec3 beamColor = original.rgb * (0.96 + 0.22 * pulse)
+    + beamHue * (0.012 + 0.065 * pulse);
+  color = mix(color, beamColor, clamp(beam * u_strength, 0.0, 1.0));
+
   gl_FragColor = vec4(clamp(color, 0.0, 1.0), original.a);
 }
 `;
@@ -230,13 +274,15 @@ export function createLaboratoryRenderer(
     const offsetUniform = context.getUniformLocation(program, "u_uvOffset");
     const phaseUniform = context.getUniformLocation(program, "u_phase");
     const strengthUniform = context.getUniformLocation(program, "u_strength");
+    const aspectUniform = context.getUniformLocation(program, "u_imageAspect");
     if (
       position < 0 ||
       !imageUniform ||
       !scaleUniform ||
       !offsetUniform ||
       !phaseUniform ||
-      !strengthUniform
+      !strengthUniform ||
+      !aspectUniform
     )
       throw new Error("科研场景着色器参数不可用");
 
@@ -246,6 +292,7 @@ export function createLaboratoryRenderer(
       strengthUniform,
       Math.max(0, Math.min(1, finite(strength, 0))),
     );
+    context.uniform1f(aspectUniform, imageWidth / imageHeight);
     context.disable(context.DEPTH_TEST);
     context.disable(context.CULL_FACE);
     context.disable(context.BLEND);
@@ -316,10 +363,10 @@ export function createLaboratoryRenderer(
         // 在 CPU 上约束各自相位，长时间运行时仍能避免低精度 GPU 的计时抖动。
         context.uniform4f(
           phaseUniform,
-          fraction((elapsed * 0.58) / turn) * turn,
-          fraction((elapsed * 0.37) / turn) * turn,
-          fraction((elapsed * 0.29) / turn) * turn,
-          fraction(elapsed * 0.065),
+          fraction(elapsed / 4) * turn,
+          fraction(elapsed / 26) * turn,
+          fraction(elapsed / 7) * turn,
+          fraction(elapsed * 0.7),
         );
         context.drawArrays(context.TRIANGLES, 0, 6);
       },
