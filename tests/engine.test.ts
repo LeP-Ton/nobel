@@ -7,6 +7,8 @@ import {
   changeProjectFunding,
   commercialize,
   createWorld,
+  cultureEffects,
+  effectiveInnovation,
   investInstitution,
   loadGame,
   ranked,
@@ -16,6 +18,7 @@ import {
   startProject,
   terminateProject,
   updateBudget,
+  updateResearchCulture,
 } from "../src/engine";
 
 test("中美使用同一规则开局，其他国家存在且不可选择", () => {
@@ -274,4 +277,164 @@ test("年度汇总字段缺失会被拒绝，国家固定元数据从规则资�
   );
   assert.deepEqual(restored.countries[0].coordinates, COUNTRIES[0].coordinates);
   assert.equal(restored.countries[0].name, COUNTRIES[0].name);
+});
+
+test("开局制度情景降低当前创新发挥，保留科学家个体创新潜力", () => {
+  const cn = createWorld("CN");
+  const us = createWorld("US");
+  const china = cn.countries.find((country) => country.id === "CN")!;
+  const america = us.countries.find((country) => country.id === "US")!;
+  const scientist = cn.scientists.find((person) => person.country === "CN")!;
+  const originalPotential = scientist.innovation;
+  assert.deepEqual(china.researchCulture, {
+    autonomy: 32,
+    horizon: 28,
+    execution: 88,
+  });
+  assert.equal(cn.policy.basic, 15);
+  assert.equal(us.policy.basic, 30);
+  assert.ok(effectiveInnovation(scientist, china) < originalPotential * 0.7);
+  assert.ok(effectiveInnovation(scientist, america) > originalPotential * 0.9);
+  assert.equal(scientist.innovation, originalPotential);
+  assert.ok(
+    cn.events.some((item) => item.description.includes("可改革的游戏情景")),
+  );
+});
+
+test("创新和执行使用统一制度公式，不依赖国家或科学家国籍", () => {
+  const world = createWorld("CN");
+  const china = world.countries.find((country) => country.id === "CN")!;
+  const samePolicy = { ...china, id: "US", name: "同制度对照国家" };
+  const scientist = world.scientists[0];
+  assert.deepEqual(cultureEffects(china), cultureEffects(samePolicy));
+  assert.equal(
+    effectiveInnovation(scientist, china),
+    effectiveInnovation({ ...scientist, country: "CN" }, samePolicy),
+  );
+});
+
+test("科研制度改革实际支付财政成本，重复切换不会返还且非法参数被拒绝", () => {
+  const world = createWorld("CN");
+  const before = saveGame(world);
+  const country = world.countries.find((item) => item.id === "CN")!;
+  const result = updateResearchCulture(world, "autonomy", 80);
+  assert.equal(result.error, undefined);
+  const after = result.world.countries.find((item) => item.id === "CN")!;
+  assert.ok(after.treasury < country.treasury);
+  assert.ok(
+    cultureEffects(after).innovation > cultureEffects(country).innovation,
+  );
+  assert.deepEqual(result.world.scientists, world.scientists);
+  assert.equal(saveGame(world), before);
+  assert.strictEqual(
+    updateResearchCulture(result.world, "autonomy", 80).world,
+    result.world,
+  );
+  const reversed = updateResearchCulture(
+    result.world,
+    "autonomy",
+    32,
+  ).world.countries.find((item) => item.id === "CN")!;
+  assert.ok(reversed.treasury < after.treasury);
+  for (const value of [-1, 101, NaN, Infinity])
+    assert.ok(updateResearchCulture(world, "autonomy", value).error);
+  const bankrupt = structuredClone(world);
+  bankrupt.countries.find((item) => item.id === "CN")!.treasury = 0;
+  assert.ok(updateResearchCulture(bankrupt, "horizon", 90).error);
+});
+
+test("长期自主研究环境真实改变前沿科研进度和成果质量", () => {
+  let world = createWorld("CN", 132);
+  const initial = world.projects.find((item) => item.field === "ai")!;
+  world = terminateProject(world, initial.id);
+  const template = TECHNOLOGIES.find(
+    (item) => item.field === "ai" && item.type === "前沿科研",
+  )!;
+  const started = startProject(
+    world,
+    template.id,
+    template.funding,
+    initial.scientists,
+  );
+  assert.equal(started.error, undefined);
+  const restricted = started.world;
+  const open = structuredClone(restricted);
+  open.countries.find((item) => item.id === "CN")!.researchCulture = {
+    autonomy: 95,
+    horizon: 95,
+    execution: 88,
+  };
+  const restrictedProgress = advanceDays(restricted, 31).projects.at(
+    -1,
+  )!.progress;
+  const openProgress = advanceDays(open, 31).projects.at(-1)!.progress;
+  assert.ok(openProgress > restrictedProgress * 1.3);
+  // 控制起点、资金与随机种子，隔离制度对成果质量的作用。
+  restricted.projects.at(-1)!.progress = 99;
+  open.projects.at(-1)!.progress = 99;
+  const restrictedResult = advanceDays(restricted, 31).projects.at(-1)!;
+  const openResult = advanceDays(open, 31).projects.at(-1)!;
+  assert.equal(restrictedResult.status, "breakthrough");
+  assert.equal(openResult.status, "breakthrough");
+  assert.ok(openResult.quality > restrictedResult.quality);
+});
+
+test("工程组织执行对成熟技术、工程化和AI同样有真实增益", () => {
+  const low = createWorld("CN", 51);
+  const high = structuredClone(low);
+  low.countries.find(
+    (country) => country.id === "CN",
+  )!.researchCulture.execution = 0;
+  high.countries.find(
+    (country) => country.id === "CN",
+  )!.researchCulture.execution = 100;
+  assert.ok(
+    advanceDays(high, 31).projects[0].progress >
+      advanceDays(low, 31).projects[0].progress,
+  );
+  low.projects[0].status = "engineering";
+  high.projects[0].status = "engineering";
+  assert.ok(
+    advanceDays(high, 31).projects[0].engineeringProgress >
+      advanceDays(low, 31).projects[0].engineeringProgress,
+  );
+  const aiLow = createWorld("CN", 53);
+  const aiHigh = structuredClone(aiLow);
+  aiLow.countries.find(
+    (country) => country.id === "US",
+  )!.researchCulture.execution = 0;
+  aiHigh.countries.find(
+    (country) => country.id === "US",
+  )!.researchCulture.execution = 100;
+  const slower = advanceDays(aiLow, 31).countries.find(
+    (country) => country.id === "US",
+  )!;
+  const faster = advanceDays(aiHigh, 31).countries.find(
+    (country) => country.id === "US",
+  )!;
+  assert.ok(
+    Object.values(faster.progress).reduce((a, b) => a + b, 0) >
+      Object.values(slower.progress).reduce((a, b) => a + b, 0),
+  );
+});
+
+test("旧v1存档迁移补齐制度而不重置进度、人才、日期或原政策", () => {
+  const world = advanceDays(createWorld("US", 83), 180);
+  world.policy.basic = 25;
+  const legacy = structuredClone(world);
+  for (const country of legacy.countries)
+    Reflect.deleteProperty(country, "researchCulture");
+  const restored = loadGame(JSON.stringify(legacy));
+  assert.deepEqual(restored, world);
+  assert.deepEqual(advanceDays(restored, 90), advanceDays(world, 90));
+  for (const culture of [
+    null,
+    { autonomy: 101, horizon: 50, execution: 50 },
+    { autonomy: 50, execution: 50 },
+    [50, 50, 50],
+  ]) {
+    const broken = structuredClone(world);
+    Reflect.set(broken.countries[0], "researchCulture", culture);
+    assert.throws(() => loadGame(JSON.stringify(broken)), /存档格式/);
+  }
 });

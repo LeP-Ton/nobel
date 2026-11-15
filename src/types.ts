@@ -1,5 +1,10 @@
 export type FieldId = "ai" | "chips" | "energy" | "manufacturing" | "bio";
 export type Fields = Record<FieldId, number>;
+export interface ResearchCulture {
+  autonomy: number;
+  horizon: number;
+  execution: number;
+}
 export interface CountrySeed {
   id: string;
   name: string;
@@ -16,6 +21,7 @@ export interface CountrySeed {
   fields: Fields;
   industry: number;
   attraction: number;
+  researchCulture: ResearchCulture;
   color: string;
   coordinates: [number, number];
   sourceIds: string[];

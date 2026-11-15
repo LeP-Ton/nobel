@@ -13,6 +13,7 @@ import type {
   Fields,
   GameEvent,
   Project,
+  ResearchCulture,
   Scientist,
   World,
 } from "./types";
@@ -50,6 +51,70 @@ function event(world: World, value: Omit<GameEvent, "id" | "date">) {
   });
   // 保留重要科研事件；历史档案由独立种子资料提供，年度统计使用项目本身计算。
   if (world.events.length > 500) world.events.length = 500;
+}
+
+// 同一套环境公式用于所有国家；科研人员潜力与制度下的实际发挥分别计算。
+export function cultureEffects(country: Country): {
+  innovation: number;
+  frontier: number;
+  mature: number;
+  engineering: number;
+} {
+  const { autonomy, horizon, execution } = country.researchCulture;
+  return {
+    innovation: round(0.5 + autonomy * 0.003 + horizon * 0.0025, 4),
+    frontier: round(0.58 + autonomy * 0.0032 + horizon * 0.0028, 4),
+    mature: round(0.82 + execution * 0.0025, 4),
+    engineering: round(0.75 + execution * 0.004, 4),
+  };
+}
+
+export function effectiveInnovation(
+  scientist: Scientist,
+  country: Country,
+): number {
+  return round(
+    clamp(scientist.innovation * cultureEffects(country).innovation),
+  );
+}
+
+export function updateResearchCulture(
+  world: World,
+  key: keyof ResearchCulture,
+  value: number,
+): ActionResult {
+  if (
+    !["autonomy", "horizon", "execution"].includes(key) ||
+    !Number.isFinite(value) ||
+    value < 0 ||
+    value > 100
+  ) {
+    return { world, error: "科研制度参数必须为 0–100 的有限数值。" };
+  }
+  const player = playerOf(world);
+  const previous = player.researchCulture[key];
+  const nextValue = round(value);
+  if (Math.abs(previous - nextValue) < 0.001) return { world };
+  // 改革需要真实组织调整成本；反复来回切换不会返还经费。
+  const cost = round(0.1 + Math.abs(nextValue - previous) * 0.08);
+  if (player.treasury < cost)
+    return { world, error: `制度改革需要 ${cost} 十亿美元财政储备。` };
+  const next = copy(world);
+  const updated = playerOf(next);
+  updated.researchCulture[key] = nextValue;
+  updated.treasury = round(updated.treasury - cost);
+  const label = {
+    autonomy: "研究自主性",
+    horizon: "长期考核权重",
+    execution: "工程组织执行",
+  }[key];
+  event(next, {
+    type: "world",
+    country: next.player,
+    title: `科研制度改革：${label}`,
+    description: `将${label}从 ${previous} 调整为 ${nextValue}，支付 ${cost} 十亿美元组织调整经费。创新发挥、前沿探索和工程执行按统一规则重新计算；这些参数是可改革游戏情景，不是现实统计。`,
+  });
+  return { world: next };
 }
 
 export function score(country: Country): number {
@@ -166,7 +231,20 @@ export function createWorld(playerId: string, seed = 20260101): World {
       .filter((item) => item.date < "2026-01-01")
       .sort((a, b) => b.date.localeCompare(a.date)),
     reports: [],
-    policy: { basic: 25, cooperation: true, talent: false },
+    policy: {
+      basic: clamp(
+        Math.round(
+          6.25 +
+            COUNTRIES.find((country) => country.id === playerId)!
+              .researchCulture.horizon *
+              0.3125,
+        ),
+        10,
+        60,
+      ),
+      cooperation: true,
+      talent: false,
+    },
     history: [],
   };
   const usedFields = new Set<FieldId>();
@@ -199,6 +277,13 @@ export function createWorld(playerId: string, seed = 20260101): World {
     title: "国家科技战略办公室已就绪",
     description:
       "2026 年模拟开始。三项继承项目已配置人才；可调整预算、创建新项目并推进时间。未来事件均为模拟推演。",
+  });
+  const effects = cultureEffects(playerOf(world));
+  event(world, {
+    type: "world",
+    country: playerId,
+    title: "科研制度开局情景已载入",
+    description: `当前研究自主性 ${playerOf(world).researchCulture.autonomy}、长期考核权重 ${playerOf(world).researchCulture.horizon}、工程组织执行 ${playerOf(world).researchCulture.execution}；创新发挥 ×${effects.innovation}，前沿探索 ×${effects.frontier}，工程化 ×${effects.engineering}。这是可改革的游戏情景，个人创新潜力保持独立；可在国家战略中调整。`,
   });
   return world;
 }
@@ -499,6 +584,7 @@ export function investInstitution(world: World, id: string): ActionResult {
 
 function researchMonth(world: World) {
   const country = playerOf(world);
+  const effects = cultureEffects(country);
   for (const project of world.projects) {
     const template = templateOf(project);
     if (!template) continue;
@@ -558,7 +644,8 @@ function researchMonth(world: World) {
         talentFactor *
         (0.35 + country.industry / 100) *
         (1 - template.engineering / 180) *
-        (0.7 + random(world) * 0.6);
+        (0.7 + random(world) * 0.6) *
+        effects.engineering;
       project.engineeringProgress = round(
         clamp(project.engineeringProgress + step),
       );
@@ -580,7 +667,12 @@ function researchMonth(world: World) {
     if (project.status === "bottleneck") {
       if (
         random(world) <
-        0.22 + average(scientists.map((item) => item.innovation)) / 300
+        0.16 +
+          average(
+            scientists.map((item) => effectiveInnovation(item, country)),
+          ) /
+            300 +
+          effects.frontier * 0.04
       ) {
         project.status = "research";
         project.log.unshift(`${world.date} 团队找到替代路线，研究瓶颈解除。`);
@@ -606,11 +698,14 @@ function researchMonth(world: World) {
       (1 - template.difficulty / 300) *
       (1 + world.policy.basic / 200) *
       (world.policy.cooperation ? 1.06 : 0.96) *
+      (template.type === "成熟技术" ? effects.mature : effects.frontier) *
       uncertainty;
     const previous = project.progress;
     project.progress = round(clamp(project.progress + step));
     if (project.progress >= 100) {
-      const innovation = average(scientists.map((item) => item.innovation));
+      const innovation = average(
+        scientists.map((item) => effectiveInnovation(item, country)),
+      );
       if (random(world) < (template.risk / 350) * (1.2 - innovation / 200)) {
         project.status = "failed";
         project.log.unshift(`${world.date} 关键实验未能复现，项目失败。`);
@@ -688,7 +783,10 @@ function researchMonth(world: World) {
     country.fields[field] = round(
       clamp(
         country.fields[field] +
-          density * 0.025 * (1.25 - country.fields[field] / 150),
+          density *
+            0.025 *
+            effects.frontier *
+            (1.25 - country.fields[field] / 150),
       ),
       4,
     );
@@ -704,6 +802,7 @@ function researchMonth(world: World) {
 function aiMonth(world: World) {
   for (const country of world.countries) {
     if (country.id === world.player) continue;
+    const effects = cultureEffects(country);
     const priorities = [...FIELD_IDS].sort(
       (a, b) => country.fields[b] - country.fields[a],
     );
@@ -742,9 +841,10 @@ function aiMonth(world: World) {
           country.progress[field] +=
             effort *
             (1.5 + random(world) * 0.7) *
-            (1 - template.difficulty / 300);
+            (1 - template.difficulty / 300) *
+            effects.mature;
           if (country.progress[field] >= 100) {
-            if (random(world) < template.risk / 400) {
+            if (random(world) < template.risk / (400 * effects.innovation)) {
               country.progress[field] = 65;
               event(world, {
                 type: "world",
@@ -778,7 +878,8 @@ function aiMonth(world: World) {
           14 *
           (0.35 + country.industry / 100) *
           (1 - template.engineering / 180) *
-          (0.7 + random(world) * 0.6);
+          (0.7 + random(world) * 0.6) *
+          effects.engineering;
         country.progress[field] += engineering;
         if (country.progress[field] >= 200) {
           country.progress[field] = 0;
@@ -802,7 +903,10 @@ function aiMonth(world: World) {
       country.fields[field] = round(
         clamp(
           country.fields[field] +
-            effort * 0.003 * (1.2 - country.fields[field] / 200),
+            effort *
+              0.003 *
+              effects.frontier *
+              (1.2 - country.fields[field] / 200),
         ),
         4,
       );
@@ -1028,6 +1132,22 @@ function parseGame(raw: string): World {
   )
     return invalid();
   for (const country of world.countries) {
+    // v1 旧存档没有制度参数时补齐情景默认值，保留科研进度和个人潜力。
+    if (country.researchCulture === undefined) {
+      const initial = COUNTRIES.find((item) => item.id === country.id);
+      if (!initial) return invalid();
+      country.researchCulture = copy(initial.researchCulture);
+    }
+    const culture = country.researchCulture;
+    if (
+      !culture ||
+      typeof culture !== "object" ||
+      Array.isArray(culture) ||
+      ![culture.autonomy, culture.horizon, culture.execution].every((value) =>
+        finite(value, 0, 100),
+      )
+    )
+      return invalid();
     if (
       !COUNTRIES.some((item) => item.id === country.id) ||
       !validFields(country.fields) ||

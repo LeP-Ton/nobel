@@ -57,23 +57,6 @@
   color: #375a8b;
   font-size: 11px;
 }
-.map-layer .world-map-legend {
-  bottom: 6px;
-  left: auto;
-  right: 15px;
-  opacity: 0.7;
-  font-size: 8px;
-}
-.map-layer .world-map-footnote {
-  bottom: 23px;
-  font-size: 7px;
-}
-.menu-map .world-map-controls,
-.menu-map .world-map-coordinate,
-.menu-map .world-map-legend,
-.menu-map .world-map-footnote {
-  display: none;
-}
 .ranking-select {
   background: #172c38;
   color: #a9c5d1;
@@ -84,7 +67,4 @@
   max-width: 150px;
 }
 @media (max-width: 740px) {
-  .map-layer .world-map-legend {
-    display: none;
-  }
 }

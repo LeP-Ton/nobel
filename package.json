@@ -1,7 +1,7 @@
 {
   "name": "nobel-science-strategy",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1 --configLoader native",
@@ -10,21 +10,16 @@
     "preview": "vite preview --host 127.0.0.1"
   },
   "dependencies": {
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
     "lucide-react": "^0.468.0",
-    "d3-geo": "^3.1.1",
-    "topojson-client": "^3.1.0",
-    "world-atlas": "^2.0.2"
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
   },
   "devDependencies": {
+    "@types/node": "^24.0.0",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
-    "@types/d3-geo": "^3.1.0",
-    "@types/topojson-client": "^3.1.0",
-    "@types/node": "^24.0.0",
+    "tsx": "^4.20.0",
     "typescript": "^5.9.0",
-    "vite": "^7.2.0",
-    "tsx": "^4.20.0"
+    "vite": "^7.2.0"
   }
 }

@@ -57,6 +57,7 @@ export const FIELD_META: Record<
 
 // 货币统一为十亿美元（现价、名义汇率），人口为百万人，科研人才为千名研究员全时当量。
 // 五领域评分、产业能力、人才吸引力及所有机构运营参数是游戏校准值，不是官方统计或现实排名。
+// 科研制度为用户指定的可改革开局情景：参数描述资源组织方式，不评价国籍或个体天赋。
 export const COUNTRIES: CountrySeed[] = [
   {
     id: "US",
@@ -74,6 +75,7 @@ export const COUNTRIES: CountrySeed[] = [
     fields: { ai: 93, chips: 91, energy: 79, manufacturing: 83, bio: 94 },
     industry: 89,
     attraction: 94,
+    researchCulture: { autonomy: 78, horizon: 76, execution: 72 },
     color: "#75b8ee",
     coordinates: [-98, 39],
     sourceIds: ["wb-gdp-2024", "wb-pop-2024", "nsf-rd-2023", "uis-researchers"],
@@ -94,6 +96,7 @@ export const COUNTRIES: CountrySeed[] = [
     fields: { ai: 85, chips: 68, energy: 94, manufacturing: 93, bio: 77 },
     industry: 95,
     attraction: 74,
+    researchCulture: { autonomy: 32, horizon: 28, execution: 88 },
     color: "#e5b56c",
     coordinates: [104, 35],
     sourceIds: [
@@ -120,6 +123,7 @@ export const COUNTRIES: CountrySeed[] = [
     fields: { ai: 70, chips: 84, energy: 80, manufacturing: 91, bio: 81 },
     industry: 88,
     attraction: 68,
+    researchCulture: { autonomy: 62, horizon: 62, execution: 86 },
     color: "#a88fd4",
     coordinates: [138, 37],
     sourceIds: [
@@ -146,6 +150,7 @@ export const COUNTRIES: CountrySeed[] = [
     fields: { ai: 76, chips: 78, energy: 85, manufacturing: 94, bio: 82 },
     industry: 91,
     attraction: 79,
+    researchCulture: { autonomy: 72, horizon: 78, execution: 84 },
     color: "#8dc8ba",
     coordinates: [10, 51],
     sourceIds: [
@@ -172,6 +177,7 @@ export const COUNTRIES: CountrySeed[] = [
     fields: { ai: 87, chips: 70, energy: 76, manufacturing: 74, bio: 89 },
     industry: 76,
     attraction: 88,
+    researchCulture: { autonomy: 80, horizon: 74, execution: 66 },
     color: "#81b9c7",
     coordinates: [-2, 54],
     sourceIds: [
@@ -198,6 +204,7 @@ export const COUNTRIES: CountrySeed[] = [
     fields: { ai: 75, chips: 92, energy: 86, manufacturing: 87, bio: 73 },
     industry: 89,
     attraction: 66,
+    researchCulture: { autonomy: 55, horizon: 48, execution: 89 },
     color: "#b3a2da",
     coordinates: [127.8, 36],
     sourceIds: [
@@ -224,6 +231,7 @@ export const COUNTRIES: CountrySeed[] = [
     fields: { ai: 81, chips: 71, energy: 83, manufacturing: 81, bio: 84 },
     industry: 80,
     attraction: 78,
+    researchCulture: { autonomy: 74, horizon: 78, execution: 74 },
     color: "#869ede",
     coordinates: [2, 47],
     sourceIds: [
@@ -250,6 +258,7 @@ export const COUNTRIES: CountrySeed[] = [
     fields: { ai: 66, chips: 43, energy: 57, manufacturing: 58, bio: 68 },
     industry: 60,
     attraction: 56,
+    researchCulture: { autonomy: 57, horizon: 49, execution: 65 },
     color: "#c4a770",
     coordinates: [79, 23],
     sourceIds: [

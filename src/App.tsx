@@ -76,8 +76,11 @@ import {
   startProject,
   terminateProject,
   updateBudget,
+  effectiveInnovation,
 } from "./engine";
-import WorldMap from "./WorldMap";
+import CommandCenter from "./CommandCenter";
+import ScienceStage from "./ScienceStage";
+import ResearchCulturePanel from "./ResearchCulturePanel";
 
 type RankMetric =
   | "composite"
@@ -313,7 +316,6 @@ function App() {
   const matchingProjects = world.projects.filter(
     (p) => (filter === "all" || p.field === filter) && p.name.includes(search),
   );
-  const newestEvents = world.events.filter((e) => !e.historical).slice(0, 6);
   const newGame = () => {
     const next = createWorld(countryChoice, Date.now() % 2147483647);
     setWorld(next);
@@ -530,15 +532,7 @@ function App() {
     <div className={`${motion ? "" : "reduce-motion"} app`}>
       {screen === "menu" && (
         <div className="main-menu">
-          <div className="menu-map">
-            <WorldMap
-              countries={world.countries}
-              player="CN"
-              selected="CN"
-              onSelect={() => {}}
-              cooperation
-            />
-          </div>
+          <ScienceStage />
           <div className="menu-grain" />
           <header className="menu-header">
             <Brand />
@@ -602,7 +596,7 @@ function App() {
               WORLD ENGINE ONLINE <span className="live-dot" />
             </span>
             <span>
-              NOBEL · EARLY ACCESS 0.1 <span className="small-divider" />{" "}
+              NOBEL · STRATEGY EDITION 0.2 <span className="small-divider" />{" "}
               历史基线 · 动态未来
             </span>
           </footer>
@@ -638,6 +632,36 @@ function App() {
                 </div>
                 <span className="eyebrow">{c.english}</span>
                 <h2>{c.name}</h2>
+                <div className="country-culture-summary">
+                  <div>
+                    <span>开局科研体制</span>
+                    <b>
+                      {c.researchCulture.autonomy < 45
+                        ? "工程执行优先"
+                        : "自主探索导向"}
+                    </b>
+                    <small>可改革情景</small>
+                  </div>
+                  <p>
+                    {c.researchCulture.autonomy < 45
+                      ? "短期成果考核较强，工程攻坚高效；自主探索空间与创新发挥受到限制。"
+                      : "自主选题与长期积累优先，为原创问题和前沿研究保留空间。"}
+                  </p>
+                  <dl>
+                    <div>
+                      <dt>研究自主性</dt>
+                      <dd>{c.researchCulture.autonomy}</dd>
+                    </div>
+                    <div>
+                      <dt>长期评价权重</dt>
+                      <dd>{c.researchCulture.horizon}</dd>
+                    </div>
+                    <div>
+                      <dt>工程组织执行</dt>
+                      <dd>{c.researchCulture.execution}</dd>
+                    </div>
+                  </dl>
+                </div>
                 <div className="country-stats">
                   <div>
                     <small>人口</small>
@@ -750,7 +774,7 @@ function App() {
               >
                 <ArrowLeft size={16} /> 返回主菜单
               </button>
-              <span className="version">NOBEL 0.1 / 现实世界模式</span>
+              <span className="version">NOBEL 0.2 / 现实世界模式</span>
             </div>
           </aside>
           <div className="workspace">
@@ -920,7 +944,7 @@ function App() {
                     {tab === "overview" ? "国家科技概览" : currentNav.label}
                     <span>
                       {tab === "overview"
-                        ? "让每一份投入，成为改变未来的力量。"
+                        ? "识别关键瓶颈，决定国家的下一次突破。"
                         : {
                             strategy: "把有限的资源，投入最有价值的未来。",
                             projects: "从科学问题出发，向下一个突破前进。",
@@ -950,140 +974,15 @@ function App() {
               </div>
 
               {tab === "overview" && (
-                <>
-                  <div className="overview-grid">
-                    <Panel
-                      title="全球科技态势"
-                      subtitle="GLOBAL SCIENCE NETWORK"
-                      className="map-panel"
-                      action={
-                        <span className="panel-label">
-                          <span className="live-dot" /> 实时模拟
-                        </span>
-                      }
-                    >
-                      <div className="map-layer">
-                        <WorldMap
-                          countries={world.countries}
-                          player={world.player}
-                          selected={selection}
-                          onSelect={setSelection}
-                          cooperation={world.policy.cooperation}
-                        />
-                        <div className="map-country-detail">
-                          <Flag country={chosen} />
-                          <div>
-                            <strong>
-                              {chosen.name}{" "}
-                              <span>
-                                {chosen.id === world.player
-                                  ? "本国"
-                                  : "AI 自主决策"}
-                              </span>
-                            </strong>
-                            <small>
-                              科技实力 {format(score(chosen))} <i /> 研发投入{" "}
-                              {money(chosen.budget)} B
-                            </small>
-                          </div>
-                          <span className="map-rank">
-                            #{ranking.findIndex((c) => c.id === chosen.id) + 1}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="map-footer">
-                        <span>
-                          <Network size={13} /> 全球科技协作网络
-                        </span>
-                        <span>
-                          {world.policy.cooperation
-                            ? "国际合作已开启"
-                            : "自主研究策略"}{" "}
-                          <ChevronRight size={12} />
-                        </span>
-                      </div>
-                    </Panel>
-                    <Panel
-                      title="全球科技竞争"
-                      subtitle="GLOBAL TECH RANKING"
-                      className="ranking-panel"
-                      action={
-                        <button
-                          className="text-button"
-                          onClick={() => go("ranking")}
-                        >
-                          全部 <ArrowRight size={13} />
-                        </button>
-                      }
-                    >
-                      <div className="ranking-caption">
-                        <span>综合科技实力</span>
-                        <span>模型指数 / 100</span>
-                      </div>
-                      <RankingList compact />
-                      <div className="rank-insight">
-                        <TrendingUp size={17} />
-                        <p>
-                          世界正在前进
-                          <span>
-                            AI 国家按自身人才、预算与产业条件持续投资科研。
-                          </span>
-                        </p>
-                      </div>
-                    </Panel>
-                  </div>
-                  <div className="section-heading">
-                    <div>
-                      <h2>核心科技领域</h2>
-                      <span>五大领域，相互依存，协同发展</span>
-                    </div>
-                    <button
-                      className="text-button"
-                      onClick={() => go("strategy")}
-                    >
-                      查看技术依赖 <ArrowRight size={13} />
-                    </button>
-                  </div>
-                  <FieldCards />
-                  <div className="lower-grid">
-                    <Panel
-                      title="重点科研项目"
-                      subtitle="PRIORITY RESEARCH"
-                      action={
-                        <button
-                          className="text-button"
-                          onClick={() => go("projects")}
-                        >
-                          全部项目 <ArrowRight size={13} />
-                        </button>
-                      }
-                    >
-                      <div className="project-list">
-                        {world.projects.slice(0, 3).map((p) => (
-                          <ProjectRow key={p.id} project={p} />
-                        ))}
-                      </div>
-                      <button
-                        className="new-project-inline"
-                        onClick={() => open("newProject")}
-                      >
-                        <Plus size={15} /> 创建新的科研项目{" "}
-                        <span>探索下一个可能</span>
-                      </button>
-                    </Panel>
-                    <Panel
-                      title="科技前沿动态"
-                      subtitle="SCIENCE INTELLIGENCE"
-                      action={
-                        <span className="panel-label">
-                          {newestEvents.length} 条动态
-                        </span>
-                      }
-                    >
-                      <EventList items={newestEvents.slice(0, 3)} />
-                    </Panel>
-                  </div>
-                </>
+                <CommandCenter
+                  world={world}
+                  onNavigate={go}
+                  onNewProject={() => open("newProject")}
+                  onBudget={() => open("budget")}
+                  onProject={open}
+                  onEvent={open}
+                  onAdvance={() => advance(30)}
+                />
               )}
 
               {tab === "strategy" && (
@@ -1102,6 +1001,7 @@ function App() {
                       <span>年度科研预算上限：GDP 的 6%</span>
                     </div>
                   </div>
+                  <ResearchCulturePanel world={world} onChange={apply} />
                   <FieldCards />
                   <div className="two-columns">
                     <Panel
@@ -1269,7 +1169,7 @@ function App() {
                   <div className="info-banner">
                     <GraduationCap size={20} />
                     <span>
-                      重点人才档案使用虚构科学家，能力与流动由模拟驱动。普通科研人员由国家人才池聚合管理。
+                      重点科学家为虚构人物。创新潜力属于个人，当前创新发挥受科研制度影响；普通科研人员由国家人才池聚合管理。
                     </span>
                     <button
                       className="text-button"
@@ -1316,9 +1216,13 @@ function App() {
                             <div className="scientist-metrics">
                               {[
                                 { n: "科研能力", v: s.ability },
-                                { n: "创新能力", v: s.innovation },
+                                { n: "创新潜力", v: s.innovation },
                                 { n: "学术声望", v: s.reputation },
                                 { n: "管理能力", v: s.management },
+                                {
+                                  n: "当前创新发挥",
+                                  v: effectiveInnovation(s, country),
+                                },
                               ].map((m) => (
                                 <div key={m.n}>
                                   <span>{m.n}</span>
@@ -1634,6 +1538,9 @@ function App() {
                         <p>
                           金额统一为十亿美元（B）；人口为百万人；科研人员为千人。八国为首版模拟范围，奖项不直接等同于国家科技实力。
                         </p>
+                        <p>
+                          科研制度是可改革的游戏情景。研究自主性、长期评价权重和工程组织执行共同影响创新发挥、前沿探索与工程化；所有国家使用相同规则，个人创新潜力独立保存。
+                        </p>
                       </div>
                       <div className="source-list">
                         {SOURCES.map((s) => (
@@ -1943,7 +1850,7 @@ function App() {
                 <div className="policy-row">
                   <div>
                     <strong>界面动态效果</strong>
-                    <p>控制地图呼吸光点与界面过渡。</p>
+                    <p>控制科研图形动态与界面过渡。</p>
                   </div>
                   <button
                     className={`switch ${motion ? "on" : ""}`}
