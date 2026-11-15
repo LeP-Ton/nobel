@@ -79,6 +79,7 @@ import {
 } from "./engine";
 import CommandCenter from "./CommandCenter";
 import ResearchCulturePanel from "./ResearchCulturePanel";
+import LaboratoryScene from "./LaboratoryScene";
 
 type RankMetric =
   | "composite"
@@ -526,7 +527,11 @@ function App() {
     >
       {screen === "menu" && (
         <div className="main-menu">
-          <div className="menu-laboratory" aria-hidden="true" />
+          <LaboratoryScene
+            className="menu-laboratory"
+            variant="menu"
+            enabled={motion}
+          />
           <div className="menu-grain" />
           <header className="menu-header">
             <Brand />
@@ -970,6 +975,7 @@ function App() {
               {tab === "overview" && (
                 <CommandCenter
                   world={world}
+                  motion={motion}
                   onNavigate={go}
                   onFieldSelect={(field) => {
                     go("projects");

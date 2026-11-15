@@ -1,0 +1,63 @@
+.laboratory-scene {
+  --lab-position-x: 50%;
+  --lab-position-y: 50%;
+  --lab-offset-x: 0px;
+  --lab-offset-y: 0px;
+  --lab-pan-x: 0px;
+  --lab-pan-y: 0px;
+  --lab-pitch: 0deg;
+  --lab-yaw: 0deg;
+  position: absolute;
+  overflow: hidden;
+  pointer-events: none;
+}
+.laboratory-camera,
+.laboratory-shade {
+  position: absolute;
+  inset: 0;
+}
+.laboratory-camera {
+  transform: perspective(1100px)
+    translate3d(var(--lab-pan-x), var(--lab-pan-y), 0)
+    rotateX(var(--lab-pitch)) rotateY(var(--lab-yaw)) scale(1.035);
+  transform-origin: 60% 50%;
+}
+.laboratory-scene[data-animated="true"] .laboratory-camera {
+  will-change: transform;
+}
+.laboratory-photo,
+.laboratory-energy {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.laboratory-photo {
+  object-fit: cover;
+  object-position: calc(var(--lab-position-x) + var(--lab-offset-x))
+    calc(var(--lab-position-y) + var(--lab-offset-y));
+  user-select: none;
+}
+.laboratory-energy {
+  opacity: 0;
+}
+.laboratory-scene[data-animated="true"] .laboratory-energy {
+  opacity: 1;
+}
+.laboratory-shade {
+  background: var(--lab-shading, none);
+}
+.reduce-motion .laboratory-camera {
+  transform: scale(1.035) !important;
+  will-change: auto;
+}
+@media (prefers-reduced-motion: reduce) {
+  .laboratory-camera {
+    transform: scale(1.035) !important;
+    will-change: auto !important;
+  }
+  .laboratory-energy {
+    display: none;
+  }
+}

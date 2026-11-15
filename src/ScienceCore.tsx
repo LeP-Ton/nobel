@@ -12,10 +12,12 @@ import {
 import { FIELD_META } from "./data";
 import { score } from "./engine";
 import type { FieldId, World } from "./types";
+import LaboratoryScene from "./LaboratoryScene";
 import "./science-core.css";
 
 interface Props {
   world: World;
+  motion: boolean;
   onFieldSelect: (field: FieldId) => void;
 }
 
@@ -44,7 +46,7 @@ function connection(from: FieldId, to: FieldId) {
   return `M${x1} ${y1} Q${340 + (x1 + x2 - 680) * 0.08} ${228 + (y1 + y2 - 456) * 0.08} ${x2} ${y2}`;
 }
 
-export default function ScienceCore({ world, onFieldSelect }: Props) {
+export default function ScienceCore({ world, motion, onFieldSelect }: Props) {
   const [mode, setMode] = useState<"capability" | "funding">("capability");
   const [focus, setFocus] = useState<FieldId | null>(null);
   const id = useId().replace(/:/g, "");
@@ -85,7 +87,7 @@ export default function ScienceCore({ world, onFieldSelect }: Props) {
         <time dateTime={world.date}>{world.date.replaceAll("-", ".")}</time>
       </div>
       <div className="sc-instrument">
-        <div className="sc-scene" aria-hidden="true" />
+        <LaboratoryScene className="sc-scene" variant="core" enabled={motion} />
         <div className="sc-atmosphere" aria-hidden="true" />
         <svg className="sc-network" viewBox="0 0 680 460" aria-hidden="true">
           <defs>

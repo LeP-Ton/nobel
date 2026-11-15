@@ -734,7 +734,9 @@ input[type="checkbox"] {
   position: absolute;
   inset: 0;
   z-index: -2;
-  background:
+  --lab-position-x: 64%;
+  --lab-position-y: 52%;
+  --lab-shading:
     linear-gradient(90deg, #06111b 0%, #06111bce 18%, #06111b22 60%, #06111b44),
     linear-gradient(
       0deg,
@@ -742,8 +744,7 @@ input[type="checkbox"] {
       transparent 25%,
       transparent 78%,
       #06111b55
-    ),
-    url("/assets/research-core-v3.png") 64% 52% / cover no-repeat;
+    );
   opacity: 0.88;
 }
 .menu-grain {
@@ -1014,10 +1015,8 @@ input[type="checkbox"] {
     display: none;
   }
   .menu-laboratory {
-    background-position:
-      center,
-      center,
-      62% center;
+    --lab-position-x: 62%;
+    --lab-position-y: 50%;
     opacity: 0.7;
   }
 }
@@ -1180,10 +1179,11 @@ input[type="checkbox"] {
     min-height: 47px;
   }
   .menu-laboratory {
-    background:
+    --lab-position-x: 61%;
+    --lab-position-y: 50%;
+    --lab-shading:
       linear-gradient(90deg, #06111bed, #06111b4d 85%),
-      linear-gradient(0deg, #06111b, transparent 75%),
-      url("/assets/research-core-v3.png") 61% center/auto 100% no-repeat;
+      linear-gradient(0deg, #06111b, transparent 75%);
     opacity: 0.78;
   }
   .menu-grain {

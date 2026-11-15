@@ -38,6 +38,7 @@ type Destination =
   | "archive";
 interface Props {
   world: World;
+  motion: boolean;
   onNavigate: (tab: Destination) => void;
   onNewProject: () => void;
   onBudget: () => void;
@@ -71,6 +72,7 @@ const dateLabel = (date: string) => date.slice(0, 10).replaceAll("-", ".");
 
 export default function CommandCenter({
   world,
+  motion,
   onNavigate,
   onNewProject,
   onBudget,
@@ -237,7 +239,11 @@ export default function CommandCenter({
             </div>
           </aside>
           <div className="hc-core-stage">
-            <ScienceCore world={world} onFieldSelect={selectField} />
+            <ScienceCore
+              world={world}
+              motion={motion}
+              onFieldSelect={selectField}
+            />
           </div>
           <aside className="hc-command-dock" aria-label="指令队列">
             <div className="hc-dock-heading">
