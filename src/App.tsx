@@ -79,7 +79,6 @@ import {
   effectiveInnovation,
 } from "./engine";
 import CommandCenter from "./CommandCenter";
-import ScienceStage from "./ScienceStage";
 import ResearchCulturePanel from "./ResearchCulturePanel";
 
 type RankMetric =
@@ -529,10 +528,14 @@ function App() {
   );
 
   return (
-    <div className={`${motion ? "" : "reduce-motion"} app`}>
+    <div
+      className={`${motion ? "" : "reduce-motion"} app`}
+      data-page={tab}
+      data-screen={screen}
+    >
       {screen === "menu" && (
         <div className="main-menu">
-          <ScienceStage />
+          <div className="menu-laboratory" aria-hidden="true" />
           <div className="menu-grain" />
           <header className="menu-header">
             <Brand />
@@ -596,7 +599,7 @@ function App() {
               WORLD ENGINE ONLINE <span className="live-dot" />
             </span>
             <span>
-              NOBEL · STRATEGY EDITION 0.2 <span className="small-divider" />{" "}
+              NOBEL · COMMAND DECK 0.3 <span className="small-divider" />{" "}
               历史基线 · 动态未来
             </span>
           </footer>
@@ -774,7 +777,7 @@ function App() {
               >
                 <ArrowLeft size={16} /> 返回主菜单
               </button>
-              <span className="version">NOBEL 0.2 / 现实世界模式</span>
+              <span className="version">NOBEL 0.3 / 现实世界模式</span>
             </div>
           </aside>
           <div className="workspace">
@@ -787,7 +790,7 @@ function App() {
                 >
                   <Menu size={20} />
                 </button>
-                <span>科技战略指挥中心</span>
+                <span>NOBEL / 科技战略指挥</span>
                 <ChevronRight size={12} />
                 <strong>{currentNav.label}</strong>
               </div>
@@ -941,7 +944,7 @@ function App() {
                     {world.date.slice(0, 4)}
                   </div>
                   <h1>
-                    {tab === "overview" ? "国家科技概览" : currentNav.label}
+                    {tab === "overview" ? "科技战略指挥舱" : currentNav.label}
                     <span>
                       {tab === "overview"
                         ? "识别关键瓶颈，决定国家的下一次突破。"
@@ -977,6 +980,10 @@ function App() {
                 <CommandCenter
                   world={world}
                   onNavigate={go}
+                  onFieldSelect={(field) => {
+                    go("projects");
+                    setFilter(field);
+                  }}
                   onNewProject={() => open("newProject")}
                   onBudget={() => open("budget")}
                   onProject={open}

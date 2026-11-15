@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import {
+  Activity,
   ArrowDownRight,
   ArrowRight,
   ArrowUpRight,
@@ -10,8 +11,11 @@ import {
   Dna,
   Factory,
   FlaskConical,
+  Gauge,
   Layers3,
   Radio,
+  ScanLine,
+  ShieldCheck,
   SlidersHorizontal,
   Sparkles,
   Target,
@@ -20,7 +24,8 @@ import {
 } from "lucide-react";
 import { FIELD_META } from "./data";
 import { cultureEffects, ranked, score } from "./engine";
-import type { Country, FieldId, GameEvent, Project, World } from "./types";
+import type { FieldId, GameEvent, Project, World } from "./types";
+import ScienceCore from "./ScienceCore";
 import "./command-center.css";
 
 type Destination =
@@ -31,7 +36,6 @@ type Destination =
   | "industry"
   | "ranking"
   | "archive";
-
 interface Props {
   world: World;
   onNavigate: (tab: Destination) => void;
@@ -40,6 +44,7 @@ interface Props {
   onProject: (project: Project) => void;
   onEvent: (event: GameEvent) => void;
   onAdvance: () => void;
+  onFieldSelect?: (field: FieldId) => void;
 }
 
 const FIELDS: FieldId[] = ["ai", "chips", "energy", "manufacturing", "bio"];
@@ -52,151 +57,17 @@ const ICONS = {
 };
 const ACTIVE = new Set(["research", "bottleneck", "engineering"]);
 const STATUS: Record<Project["status"], string> = {
-  research: "研究中",
+  research: "研究执行中",
   bottleneck: "研究瓶颈",
-  breakthrough: "等待转化",
-  engineering: "工程验证",
-  production: "规模生产",
+  breakthrough: "突破待转化",
+  engineering: "工程验证中",
+  production: "规模化生产",
   failed: "验证失败",
-  terminated: "战略终止",
+  terminated: "已终止",
 };
-const format = (value: number, digits = 1) =>
-  value.toLocaleString("zh-CN", { maximumFractionDigits: digits });
-const shortDate = (date: string) => date.slice(5, 10).replace("-", ".");
-const RADAR_RADIUS = 115;
-const points = (radius: number) =>
-  FIELDS.map((_, index) => {
-    const angle = ((-90 + index * 72) * Math.PI) / 180;
-    return [230 + Math.cos(angle) * radius, 155 + Math.sin(angle) * radius];
-  });
-
-function CapabilityRadar({
-  country,
-  rival,
-}: {
-  country: Country;
-  rival: Country;
-}) {
-  const shape = (nation: Country) =>
-    FIELDS.map((field, index) =>
-      points((nation.fields[field] / 100) * RADAR_RADIUS)[index].join(","),
-    ).join(" ");
-  const labelCoordinates = [
-    [230, 12],
-    [398, 105],
-    [340, 284],
-    [120, 284],
-    [62, 105],
-  ];
-
-  return (
-    <div className="cc-radar">
-      <svg
-        viewBox="0 0 460 315"
-        role="img"
-        aria-label={`${country.name}与${rival.name}的五领域科技能力对比，能力为模拟指数`}
-      >
-        <defs>
-          <radialGradient id="cc-radar-fill">
-            <stop offset="0%" stopColor="#88c8ca" stopOpacity=".05" />
-            <stop offset="100%" stopColor="#88c8ca" stopOpacity=".23" />
-          </radialGradient>
-        </defs>
-        {[20, 40, 60, 80, 100].map((value) => (
-          <polygon
-            key={value}
-            points={points((value / 100) * RADAR_RADIUS)
-              .map((point) => point.join(","))
-              .join(" ")}
-            fill="none"
-            stroke="#41535c"
-            strokeWidth={value === 100 ? "1" : ".65"}
-            opacity={value === 100 ? ".7" : ".45"}
-          />
-        ))}
-        {points(RADAR_RADIUS).map(([x, y], index) => (
-          <line
-            key={index}
-            x1="230"
-            y1="155"
-            x2={x}
-            y2={y}
-            stroke="#40515a"
-            strokeWidth=".7"
-            opacity=".6"
-          />
-        ))}
-        <polygon
-          points={shape(rival)}
-          fill="#c4ab7210"
-          stroke="#c4ab72"
-          strokeDasharray="5 5"
-          strokeWidth="1.4"
-          opacity=".8"
-        />
-        <polygon
-          points={shape(country)}
-          fill="url(#cc-radar-fill)"
-          stroke="#9bd2d0"
-          strokeWidth="1.7"
-        />
-        {FIELDS.map((field, index) => {
-          const [x, y] = points((country.fields[field] / 100) * RADAR_RADIUS)[
-            index
-          ];
-          const [lx, ly] = labelCoordinates[index];
-          return (
-            <g key={field}>
-              <circle
-                cx={x}
-                cy={y}
-                r="3.3"
-                fill="#aedcda"
-                stroke="#122027"
-                strokeWidth="1.5"
-              />
-              <text
-                x={lx}
-                y={ly}
-                fill="#afc0c6"
-                fontSize="14"
-                textAnchor="middle"
-              >
-                {FIELD_META[field].name}
-              </text>
-              <text
-                x={lx}
-                y={ly + 21}
-                fill="#d6e5e6"
-                fontSize="22"
-                fontFamily="Barlow Condensed, sans-serif"
-                textAnchor="middle"
-              >
-                {format(country.fields[field])}
-                <tspan fill="#71848e" fontSize="12">
-                  {" "}
-                  / {format(rival.fields[field])}
-                </tspan>
-              </text>
-            </g>
-          );
-        })}
-        <circle cx="230" cy="155" r="2" fill="#74989d" />
-      </svg>
-      <div className="cc-radar-key">
-        <span>
-          <i />
-          {country.name}
-        </span>
-        <span>
-          <i />
-          {rival.name} · 主要竞争者
-        </span>
-        <small>模拟能力指数 / 100</small>
-      </div>
-    </div>
-  );
-}
+const format = (n: number, digits = 1) =>
+  n.toLocaleString("zh-CN", { maximumFractionDigits: digits });
+const dateLabel = (date: string) => date.slice(0, 10).replaceAll("-", ".");
 
 export default function CommandCenter({
   world,
@@ -206,319 +77,388 @@ export default function CommandCenter({
   onProject,
   onEvent,
   onAdvance,
+  onFieldSelect,
 }: Props) {
-  const country = world.countries.find((item) => item.id === world.player)!;
+  const country = world.countries.find((c) => c.id === world.player)!;
   const ranking = ranked(world);
-  const rank = ranking.findIndex((item) => item.id === country.id) + 1;
-  const rival = ranking.find((item) => item.id !== country.id)!;
-  const culture = country.researchCulture;
+  const rank = ranking.findIndex((c) => c.id === world.player) + 1;
+  const rival = ranking.find((c) => c.id !== world.player)!;
   const effects = cultureEffects(country);
-  const isShortTerm = culture.horizon < 45;
-  const scientists = world.scientists.filter(
-    (person) => person.country === country.id,
+  const active = world.projects.filter((p) => ACTIVE.has(p.status));
+  const breakthroughs = world.projects.filter(
+    (p) => p.status === "breakthrough",
   );
-  const availableScientists = scientists.filter(
-    (person) =>
-      !world.projects.some(
-        (project) =>
-          ACTIVE.has(project.status) && project.scientists.includes(person.id),
-      ),
+  const engineering = world.projects.filter((p) => p.status === "engineering");
+  const scientists = world.scientists.filter((s) => s.country === country.id);
+  const freeScientists = scientists.filter(
+    (s) => !active.some((p) => p.scientists.includes(s.id)),
   );
-  const active = world.projects.filter((project) => ACTIVE.has(project.status));
-  const pending = world.projects.filter(
-    (project) => project.status === "breakthrough",
+  const institutions = world.institutions.filter(
+    (i) => i.country === country.id,
   );
-  const committed = active.reduce((sum, project) => sum + project.funding, 0);
-  const capacity = country.budget * (1 - world.policy.basic / 100);
-  const events = world.events.filter((event) => !event.historical).slice(0, 4);
-  const sortedProjects = [...world.projects]
-    .sort((a, b) => {
-      const priority = {
-        bottleneck: 0,
-        engineering: 1,
-        research: 2,
-        breakthrough: 3,
-        production: 4,
-        failed: 5,
-        terminated: 6,
-      };
-      return priority[a.status] - priority[b.status];
-    })
+  const committed = active.reduce((sum, p) => sum + p.funding, 0);
+  const applicationBudget = country.budget * (1 - world.policy.basic / 100);
+  const events = world.events.filter((e) => !e.historical).slice(0, 4);
+  const projectPriority = {
+    bottleneck: 0,
+    engineering: 1,
+    research: 2,
+    breakthrough: 3,
+    production: 4,
+    failed: 5,
+    terminated: 6,
+  };
+  const projects = [...world.projects]
+    .sort((a, b) => projectPriority[a.status] - projectPriority[b.status])
     .slice(0, 3);
-  const yearProgress = (() => {
-    const date = new Date(`${world.date}T00:00:00Z`);
-    const start = Date.UTC(date.getUTCFullYear(), 0, 1);
-    const end = Date.UTC(date.getUTCFullYear() + 1, 0, 1);
-    return ((date.getTime() - start) / (end - start)) * 100;
-  })();
+  const selectField = (field: FieldId) =>
+    onFieldSelect ? onFieldSelect(field) : onNavigate("projects");
+  const quarter = Math.ceil(Number(world.date.slice(5, 7)) / 3);
+  const policy = country.researchCulture;
 
   return (
-    <div className="cc-root">
-      <section className="cc-strategy-board" aria-label="国家科研战略态势">
-        <header className="cc-board-header">
-          <div>
-            <span className="cc-section-index">01</span>
-            <h2>国家创新体系</h2>
-            <span className="cc-header-meta">国家科研战略态势</span>
-          </div>
-          <span className="cc-live">
-            <i />
-            战略网络已连接
-          </span>
-        </header>
-        <div className="cc-board-content">
-          <section className="cc-doctrine" aria-label="当前科研制度">
-            <div className="cc-doctrine-label">
-              <Atom size={15} />
-              当前发展路径
+    <div className="cc-root hc-root">
+      <section className="hc-cockpit" aria-label="国家科研中枢">
+        <div className="hc-shell-corner hc-shell-top-left" aria-hidden="true" />
+        <div
+          className="hc-shell-corner hc-shell-bottom-right"
+          aria-hidden="true"
+        />
+        <header className="hc-bridge-header">
+          <div className="hc-bridge-title">
+            <span className="hc-section-number">01</span>
+            <span className="hc-title-mark">
+              <Atom size={20} />
+            </span>
+            <div>
+              <span className="hc-kicker">NATIONAL SCIENCE CORE</span>
+              <h2>国家科研中枢</h2>
             </div>
-            <h3>
-              {isShortTerm ? "工程驱动" : "探索驱动"}
-              <span>{isShortTerm ? "短期成果导向" : "长期创新导向"}</span>
-            </h3>
-            <p>
-              {isShortTerm
-                ? "集中组织资源，优先交付可验证的技术成果；前沿探索受到较短考核周期的约束。"
-                : "给予科研团队更大的探索空间，以长期积累支撑前沿突破；成果转化仍需持续投入。"}
-            </p>
-            <div className="cc-culture-bars">
+          </div>
+          <div className="hc-bridge-status">
+            <span className="hc-system-live">
+              <i /> 世界引擎在线
+            </span>
+            <span className="hc-bridge-date">{dateLabel(world.date)}</span>
+            <ScanLine size={16} />
+          </div>
+        </header>
+        <div className="hc-system-rail" aria-label="科研网络运行概况">
+          <span>
+            <ShieldCheck size={12} /> 国家科研网络
+          </span>
+          <span>
+            <b>{world.countries.length}</b> 竞争国家
+          </span>
+          <span>
+            <b>{active.length}</b> 执行计划
+          </span>
+          <span>
+            <b>{institutions.length}</b> 重点机构
+          </span>
+          <span className="hc-rail-mode">现实世界 / 动态未来</span>
+        </div>
+        <div className="hc-cockpit-main">
+          <aside className="hc-strategy-dock" aria-label="国家战略模块">
+            <div className="hc-dock-heading">
+              <span>战略模块</span>
+              <small>STRATEGY MODULE</small>
+            </div>
+            <div className="hc-national-signature">
+              <span>{country.id}</span>
+              <div>
+                <strong>{country.name}</strong>
+                <small>国家科技战略委员会</small>
+              </div>
+            </div>
+            <div className="hc-doctrine">
+              <span className="hc-micro-label">当前科研路径</span>
+              <h3>{policy.horizon < 45 ? "工程攻坚" : "自主探索"}</h3>
+              <p>
+                {policy.horizon < 45
+                  ? "短期成果 · 执行优先"
+                  : "长期积累 · 原创优先"}
+              </p>
+            </div>
+            <div className="hc-doctrine-gauges">
               {(
                 [
-                  { key: "autonomy", title: "研究自主性" },
-                  { key: "horizon", title: "长期考核权重" },
-                  { key: "execution", title: "工程组织执行" },
+                  { key: "autonomy", label: "研究自主性" },
+                  { key: "horizon", label: "长期评价" },
+                  { key: "execution", label: "工程执行" },
                 ] as const
-              ).map((item) => (
-                <div key={item.key}>
-                  <span>{item.title}</span>
+              ).map((axis) => (
+                <div
+                  key={axis.key}
+                  className={
+                    axis.key === "execution" ? "hc-gauge-engineering" : ""
+                  }
+                >
                   <div>
-                    <i style={{ width: `${culture[item.key]}%` }} />
+                    <span>{axis.label}</span>
+                    <strong>{format(policy[axis.key], 0)}</strong>
                   </div>
-                  <b>{format(culture[item.key], 0)}</b>
+                  <div className="hc-segmented-gauge">
+                    <i style={{ width: `${policy[axis.key]}%` }} />
+                  </div>
                 </div>
               ))}
             </div>
-            <div className="cc-policy-effect">
-              <span>
-                创新发挥 <b>{format(effects.innovation * 100, 0)}%</b>
-              </span>
-              <span>
-                工程效率 <b>×{format(effects.engineering, 2)}</b>
-              </span>
+            <div className="hc-doctrine-effects">
+              <div>
+                <Sparkles size={13} />
+                <span>创新发挥</span>
+                <b>×{format(effects.innovation, 2)}</b>
+              </div>
+              <div>
+                <Gauge size={13} />
+                <span>工程转化</span>
+                <b>×{format(effects.engineering, 2)}</b>
+              </div>
             </div>
             <button
-              className="cc-text-action"
+              className="hc-dock-action"
               onClick={() => onNavigate("strategy")}
             >
-              调整科研制度 <ArrowRight size={14} />
+              调整科研制度 <ArrowUpRight size={14} />
             </button>
-            <small className="cc-model-label">
-              可改革的游戏情景参数，非现实人才评价
-            </small>
-          </section>
-          <section className="cc-capability" aria-label="科技能力结构">
-            <div className="cc-capability-heading">
-              <span>科技能力结构</span>
-              <button onClick={() => onNavigate("ranking")}>
-                竞争对比 <ArrowUpRight size={13} />
-              </button>
-            </div>
-            <CapabilityRadar country={country} rival={rival} />
-          </section>
-          <section className="cc-agenda" aria-label="本期指挥议程">
-            <div className="cc-agenda-heading">
-              <Target size={16} />
-              <h3>本期指挥议程</h3>
-              <span>三项决策</span>
-            </div>
-            <button className="cc-order" onClick={onBudget}>
-              <span className="cc-order-number">01</span>
+            <div className="hc-dock-reserves">
+              <span>可用财政储备</span>
+              <strong>
+                ${format(country.treasury)}
+                <small>B</small>
+              </strong>
               <div>
-                <strong>校准科研资源</strong>
-                <p>
-                  已承诺 ${format(committed)} B <span>/</span> 应用研究 $
-                  {format(capacity)} B
-                </p>
+                <Users size={12} />
+                <span>
+                  {freeScientists.length} / {scientists.length} 位首席待命
+                </span>
               </div>
-              <SlidersHorizontal size={15} />
+            </div>
+          </aside>
+          <div className="hc-core-stage">
+            <ScienceCore world={world} onFieldSelect={selectField} />
+          </div>
+          <aside className="hc-command-dock" aria-label="指令队列">
+            <div className="hc-dock-heading">
+              <span>指令队列</span>
+              <small>COMMAND QUEUE</small>
+            </div>
+            <button
+              className="hc-command hc-command-resource"
+              onClick={onBudget}
+            >
+              <span className="hc-command-id">01 / RESOURCE</span>
+              <div className="hc-command-caption">
+                <SlidersHorizontal size={17} />
+                <strong>调配科研资源</strong>
+                <ChevronRight size={15} />
+              </div>
+              <p>年度应用研究预算</p>
+              <div className="hc-command-value">
+                ${format(applicationBudget)}
+                <small>B</small>
+                <span>已承诺 {format(committed)} B</span>
+              </div>
+              <div className="hc-command-load">
+                <i
+                  style={{
+                    width: `${Math.min(100, (committed / Math.max(1, applicationBudget)) * 100)}%`,
+                  }}
+                />
+              </div>
             </button>
             <button
-              className={`cc-order ${pending.length ? "cc-order-important" : ""}`}
+              className={`hc-command ${breakthroughs.length ? "hc-command-priority" : ""}`}
               onClick={
-                pending.length ? () => onNavigate("industry") : onNewProject
+                breakthroughs.length
+                  ? () => onNavigate("industry")
+                  : onNewProject
               }
             >
-              <span className="cc-order-number">02</span>
-              <div>
+              <span className="hc-command-id">
+                02 / {breakthroughs.length ? "TRANSFER" : "RESEARCH"}
+              </span>
+              <div className="hc-command-caption">
+                {breakthroughs.length ? (
+                  <Sparkles size={17} />
+                ) : (
+                  <FlaskConical size={17} />
+                )}
                 <strong>
-                  {pending.length ? "推动成果转化" : "部署新的研究计划"}
+                  {breakthroughs.length ? "转化突破成果" : "部署研究计划"}
                 </strong>
-                <p>
-                  {pending.length
-                    ? `${pending.length} 项突破等待工程化决策`
-                    : `${availableScientists.length} 位首席科学家可分配`}
-                </p>
+                <ChevronRight size={15} />
               </div>
-              {pending.length ? (
-                <Sparkles size={15} />
-              ) : (
-                <FlaskConical size={15} />
-              )}
+              <div className="hc-command-count">
+                <b>
+                  {String(
+                    breakthroughs.length || freeScientists.length,
+                  ).padStart(2, "0")}
+                </b>
+                <span>
+                  {breakthroughs.length
+                    ? "项技术等待工程化"
+                    : "位重点科学家可配置"}
+                </span>
+              </div>
+              <p>
+                {engineering.length
+                  ? `${engineering.length} 项工程化验证正在执行`
+                  : breakthroughs.length
+                    ? "技术突破后仍需工程验证与资金投入"
+                    : "配置方向、团队与年度经费"}
+              </p>
             </button>
-            <button className="cc-order" onClick={onAdvance}>
-              <span className="cc-order-number">03</span>
-              <div>
-                <strong>推进科研周期</strong>
-                <p>{active.length} 项计划正在执行 · 推进30天</p>
-              </div>
-              <ArrowRight size={16} />
+            <button className="hc-advance-command" onClick={onAdvance}>
+              <span>
+                <Activity size={16} />
+                <b>推进科研周期</b>
+                <small>模拟推进 30 天</small>
+              </span>
+              <ArrowRight size={22} />
             </button>
-            <div className="cc-year-track">
-              <div>
-                <span>{world.date.slice(0, 4)} 年度任期</span>
-                <strong>
-                  Q{Math.ceil(Number(world.date.slice(5, 7)) / 3)}
-                </strong>
-              </div>
-              <div className="cc-year-track-line">
-                <span style={{ width: `${yearProgress}%` }} />
-                {[0, 25, 50, 75, 100].map((value) => (
-                  <i key={value} style={{ left: `${value}%` }} />
-                ))}
-              </div>
-              <small>每月科研结算 · 每年生成科技发展报告</small>
+            <div className="hc-command-note">
+              <i /> 每月科研结算{" "}
+              <span>
+                Q{quarter} / {world.date.slice(0, 4)}
+              </span>
             </div>
-          </section>
+          </aside>
         </div>
-        <div className="cc-standing-strip">
-          <span>
-            综合科技位次 <b>0{rank}</b>
-            <small>/ {ranking.length}</small>
-          </span>
-          <div className="cc-standing-countries">
+        <footer className="hc-rival-track">
+          <div className="hc-player-rank">
+            <span>综合科技位次</span>
+            <b>{String(rank).padStart(2, "0")}</b>
+            <small>/ {world.countries.length}</small>
+          </div>
+          <div className="hc-rival-lanes">
             {ranking.slice(0, 4).map((nation, index) => (
               <button
                 key={nation.id}
-                className={nation.id === country.id ? "cc-standing-home" : ""}
+                className={nation.id === country.id ? "hc-rival-home" : ""}
                 onClick={() => onNavigate("ranking")}
               >
-                <span>{String(index + 1).padStart(2, "0")}</span>
-                {nation.name}
+                <small>{String(index + 1).padStart(2, "0")}</small>
+                <span>{nation.name}</span>
                 <b>{format(score(nation))}</b>
+                <i style={{ width: `${score(nation)}%` }} />
               </button>
             ))}
           </div>
           <button
-            className="cc-text-action"
+            className="hc-rank-action"
             onClick={() => onNavigate("ranking")}
           >
-            全球竞争 <ArrowRight size={13} />
+            全球竞争 <ArrowUpRight size={14} />
           </button>
-        </div>
+        </footer>
       </section>
 
-      <section className="cc-frontlines" aria-label="五大科研战线">
-        <div className="cc-section-heading">
+      <section className="hc-frontlines" aria-label="五大科技战线">
+        <header className="hc-section-header">
           <div>
-            <span className="cc-section-index">02</span>
-            <h2>五大科研战线</h2>
-            <span>能力、投入与竞争差距</span>
+            <span className="hc-section-number">02</span>
+            <h2>五大科技战线</h2>
+            <small>RESEARCH DIVISIONS</small>
           </div>
-          <button
-            className="cc-text-action"
-            onClick={() => onNavigate("strategy")}
-          >
-            技术依赖与预算 <ArrowRight size={13} />
+          <button onClick={() => onNavigate("strategy")}>
+            技术依赖与预算 <ArrowUpRight size={13} />
           </button>
-        </div>
-        <div className="cc-frontline-grid">
-          {FIELDS.map((field) => {
+        </header>
+        <div className="hc-division-slots">
+          {FIELDS.map((field, index) => {
             const Icon = ICONS[field];
             const difference = country.fields[field] - rival.fields[field];
-            const count = active.filter(
-              (project) => project.field === field,
-            ).length;
+            const fieldProjects = active.filter((p) => p.field === field);
             return (
               <button
                 key={field}
-                className="cc-frontline"
-                onClick={() => onNavigate("projects")}
+                className="hc-division"
+                onClick={() => selectField(field)}
                 style={
-                  { "--cc-field": FIELD_META[field].color } as CSSProperties
+                  { "--hc-field": FIELD_META[field].color } as CSSProperties
                 }
               >
-                <div className="cc-field-name">
-                  <Icon size={20} />
+                <span className="hc-division-index">D.0{index + 1}</span>
+                <div className="hc-division-heading">
+                  <span>
+                    <Icon size={22} />
+                  </span>
                   <h3>{FIELD_META[field].name}</h3>
-                  <ChevronRight size={13} />
+                  <ChevronRight size={12} />
                 </div>
-                <div className="cc-frontline-score">
+                <div className="hc-division-measure">
                   <strong>{format(country.fields[field])}</strong>
-                  <span>科研能力</span>
-                  <small
-                    className={difference >= 0 ? "cc-positive" : "cc-negative"}
+                  <span
+                    className={difference >= 0 ? "hc-positive" : "hc-negative"}
                   >
                     {difference >= 0 ? (
-                      <ArrowUpRight size={12} />
+                      <ArrowUpRight size={11} />
                     ) : (
-                      <ArrowDownRight size={12} />
+                      <ArrowDownRight size={11} />
                     )}
                     {difference >= 0 ? "+" : ""}
                     {format(difference)}
-                  </small>
+                  </span>
                 </div>
-                <div className="cc-field-scale">
-                  <span style={{ width: `${country.fields[field]}%` }} />
-                  <i
+                <div className="hc-division-scale">
+                  <i style={{ width: `${country.fields[field]}%` }} />
+                  <span
                     style={{ left: `${Math.min(99, rival.fields[field])}%` }}
                     title={`${rival.name} ${format(rival.fields[field])}`}
                   />
                 </div>
-                <div className="cc-field-funding">
+                <div className="hc-division-funding">
                   <span>年度投入</span>
                   <b>
                     $
                     {format(
                       (country.budget * country.allocations[field]) / 100,
-                    )}{" "}
-                    B
+                    )}
+                    <small>B</small>
                   </b>
                 </div>
-                <div className="cc-field-meta">
+                <div className="hc-division-footer">
                   <span>{country.allocations[field]}% 预算</span>
-                  <span>{count ? `${count} 项执行中` : "等待研究部署"}</span>
+                  <span>
+                    <i
+                      className={
+                        fieldProjects.length ? "hc-division-active" : ""
+                      }
+                    />
+                    {fieldProjects.length
+                      ? `${fieldProjects.length} 项执行`
+                      : "等待部署"}
+                  </span>
                 </div>
               </button>
             );
           })}
         </div>
-        <div className="cc-frontline-note">
+        <div className="hc-model-note">
           <span>
-            <i />
-            能力指数及预算均来自当前模拟状态
+            <i /> 能力与投入来自当前世界状态
           </span>
-          <span>差值与刻度参照：{rival.name}</span>
+          <span>竞争差值参照：{rival.name}</span>
         </div>
       </section>
 
-      <div className="cc-operational-grid">
-        <section className="cc-projects">
-          <div className="cc-section-heading">
+      <div className="hc-operation-deck">
+        <section className="hc-research-deck" aria-label="战略科研计划">
+          <header className="hc-section-header">
             <div>
-              <span className="cc-section-index">03</span>
+              <span className="hc-section-number">03</span>
               <h2>战略科研计划</h2>
-              <span>{active.length} 项执行中</span>
+              <small>{active.length} 项执行中</small>
             </div>
-            <button
-              className="cc-text-action"
-              onClick={() => onNavigate("projects")}
-            >
-              全部计划 <ArrowRight size={13} />
+            <button onClick={() => onNavigate("projects")}>
+              全部计划 <ArrowUpRight size={13} />
             </button>
-          </div>
-          <div className="cc-project-list">
-            {sortedProjects.length ? (
-              sortedProjects.map((project) => {
+          </header>
+          <div className="hc-project-register">
+            {projects.length ? (
+              projects.map((project, index) => {
                 const Icon = ICONS[project.field];
                 const stage =
                   project.status === "production"
@@ -534,105 +474,103 @@ export default function CommandCenter({
                     : project.progress;
                 return (
                   <button
-                    className={`cc-project cc-project-${project.status}`}
+                    className={`hc-project hc-project-${project.status}`}
                     key={project.id}
                     onClick={() => onProject(project)}
                     style={
                       {
-                        "--cc-field": FIELD_META[project.field].color,
+                        "--hc-field": FIELD_META[project.field].color,
                       } as CSSProperties
                     }
                   >
-                    <div className="cc-project-symbol">
-                      <Icon size={22} />
-                    </div>
-                    <div className="cc-project-main">
-                      <div className="cc-project-name">
+                    <span className="hc-project-index">0{index + 1}</span>
+                    <span className="hc-project-emblem">
+                      <Icon size={23} />
+                    </span>
+                    <div className="hc-project-content">
+                      <div className="hc-project-title">
                         <h3>{project.name}</h3>
                         <span>{STATUS[project.status]}</span>
                       </div>
-                      <p>
-                        {FIELD_META[project.field].name}
+                      <div className="hc-project-meta">
+                        <span>{FIELD_META[project.field].name}</span>
                         <i />
-                        {project.scientists.length} 位首席科学家
-                        <i />${format(project.funding)} B / 年
-                      </p>
-                      <div className="cc-project-track">
+                        <span>{project.scientists.length} 位首席</span>
+                        <i />
+                        <span>${format(project.funding)} B / 年</span>
+                      </div>
+                      <div className="hc-project-progress">
                         <span style={{ width: `${progress}%` }} />
                       </div>
-                      <div className="cc-project-stages">
-                        {["科研", "突破", "工程", "投产"].map(
-                          (label, index) => (
-                            <span
-                              key={label}
-                              className={
-                                index <= stage ? "cc-stage-reached" : ""
-                              }
-                            >
-                              {index < stage ? <Check size={9} /> : <i />}
-                              {label}
-                            </span>
-                          ),
-                        )}
+                      <div className="hc-phase-rail">
+                        {["科研", "突破", "工程", "投产"].map((label, i) => (
+                          <span
+                            key={label}
+                            className={i <= stage ? "hc-phase-reached" : ""}
+                          >
+                            {i < stage ? <Check size={8} /> : <i />}
+                            {label}
+                          </span>
+                        ))}
                       </div>
                     </div>
-                    <div className="cc-project-percent">
+                    <div className="hc-project-result">
                       <strong>
                         {format(progress, 0)}
                         <small>%</small>
                       </strong>
-                      <ChevronRight size={15} />
+                      <ChevronRight size={17} />
                     </div>
                   </button>
                 );
               })
             ) : (
-              <div className="cc-empty">
-                <FlaskConical size={26} />
-                <h3>下一项科学发现，等待你的部署</h3>
-                <p>选择研究方向，配置团队与经费。</p>
+              <div className="hc-empty">
+                <FlaskConical size={27} />
+                <h3>新的科学问题，等待你的指令</h3>
+                <p>选择技术方向，配置研究团队与经费。</p>
               </div>
             )}
           </div>
-          <button className="cc-add-project" onClick={onNewProject}>
+          <button className="hc-new-project" onClick={onNewProject}>
             <FlaskConical size={16} />
             <span>批准新的研究计划</span>
-            <ArrowRight size={15} />
+            <ArrowRight size={18} />
           </button>
         </section>
-
-        <section className="cc-intelligence">
-          <div className="cc-section-heading">
+        <section className="hc-intelligence-deck" aria-label="全球科技情报">
+          <header className="hc-section-header">
             <div>
-              <span className="cc-section-index">04</span>
+              <span className="hc-section-number">04</span>
               <h2>全球科技情报</h2>
             </div>
-            <button
-              className="cc-text-action"
-              onClick={() => onNavigate("archive")}
-            >
-              <Radio size={13} />
-              事件档案
+            <button onClick={() => onNavigate("archive")}>
+              <Radio size={13} /> 事件档案
             </button>
-          </div>
-          <div className="cc-intelligence-list">
+          </header>
+          <div className="hc-intelligence-terminal">
+            <div className="hc-terminal-status">
+              <span>
+                <i /> 科研情报链路
+              </span>
+              <small>{events.length} 条最新信息</small>
+            </div>
             {events.length ? (
               events.map((event) => (
                 <button
-                  className="cc-event"
+                  className={`hc-event hc-event-${event.type}`}
                   key={event.id}
                   onClick={() => onEvent(event)}
                 >
-                  <span className="cc-event-date">
-                    {shortDate(event.date)}
+                  <span className="hc-event-time">
+                    {event.date.slice(5, 10).replace("-", ".")}
                     <i />
                   </span>
                   <div>
-                    <div className="cc-event-meta">
+                    <div className="hc-event-source">
                       <span>
-                        {world.countries.find(
-                          (nation) => nation.id === event.country,
-                        )?.name || "全球科研网络"}
+                        {world.countries.find((c) => c.id === event.country)
+                          ?.name || "全球科研网络"}
                       </span>
                       <small>
                         {event.type === "industry"
@@ -653,17 +591,16 @@ export default function CommandCenter({
                 </button>
               ))
             ) : (
-              <div className="cc-empty">
-                <Radio size={26} />
-                <h3>科研情报网络已就绪</h3>
-                <p>推进时间，获取世界各地的科技进展。</p>
+              <div className="hc-empty">
+                <Radio size={27} />
+                <h3>科研情报链路已就绪</h3>
+                <p>推进时间，接收世界科技动态。</p>
               </div>
             )}
-          </div>
-          <div className="cc-intelligence-footer">
-            <i />
-            {world.countries.length} 个国家同步演进{" "}
-            <span>未来事件由模拟生成</span>
+            <div className="hc-terminal-foot">
+              <span>{world.countries.length} 国同步演进</span>
+              <small>未来事件由模拟生成</small>
+            </div>
           </div>
         </section>
       </div>

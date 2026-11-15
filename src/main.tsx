@@ -4,6 +4,8 @@ import App from "./App";
 import "./styles.css";
 import "./flags.css";
 import "./strategy-theme.css";
+import "./tactical-theme.css";
+import "./module-theme.css";
 
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

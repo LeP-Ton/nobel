@@ -976,41 +976,6 @@ button {
   border-top-color: #5a70634a;
   color: #92a7ad;
 }
-.science-stage {
-  position: absolute;
-  right: -5%;
-  top: 0;
-  width: min(78vw, 1050px);
-  height: 92%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  pointer-events: none;
-  opacity: 0.85;
-}
-.science-stage svg {
-  width: 100%;
-  max-height: 85vh;
-  overflow: visible;
-}
-.science-stage-caption {
-  position: absolute;
-  top: 16%;
-  font-size: 10px;
-  letter-spacing: 5px;
-  color: #8da6a3;
-}
-.science-rings {
-  transform-origin: 440px 345px;
-  animation: scientific-breath 20s ease-in-out infinite;
-}
-@keyframes scientific-breath {
-  50% {
-    opacity: 0.6;
-    transform: rotate(4deg);
-  }
-}
 .choose-title h1 {
   font-size: 31px;
   letter-spacing: 4px;
@@ -1127,11 +1092,6 @@ button {
   .panel-heading {
     padding: 17px 20px;
   }
-  .science-stage {
-    right: -15%;
-    width: 90vw;
-    opacity: 0.7;
-  }
   .menu-content {
     padding-left: 8%;
   }
@@ -1188,10 +1148,6 @@ button {
   }
   .field-top > span {
     display: inline;
-  }
-  .science-stage {
-    right: -22%;
-    opacity: 0.4;
   }
   .menu-coordinate {
     display: none;
@@ -1504,15 +1460,6 @@ button {
   .menu-actions > .menu-link {
     font-size: 12px;
   }
-  .science-stage {
-    right: -98%;
-    width: 190vw;
-    top: 2%;
-    opacity: 0.35;
-  }
-  .science-stage-caption {
-    display: none;
-  }
   .menu-grain {
     background: linear-gradient(90deg, #111b24b3, transparent);
   }
@@ -1563,15 +1510,7 @@ button {
 .nation-badge > svg {
   display: none;
 }
-.science-stage-caption {
-  top: 9%;
-}
 @media (max-width: 1250px) and (min-width: 741px) {
-  .science-stage {
-    right: -6%;
-    width: 80vw;
-    opacity: 0.75;
-  }
 }
 
 .game-date > span {
