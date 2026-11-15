@@ -256,47 +256,12 @@ svg {
 }
 .flag {
   width: 28px;
-  height: 19px;
-  display: inline-grid;
-  place-items: center;
+  height: auto;
+  display: inline-block;
   flex-shrink: 0;
-  border-radius: 2px;
   box-shadow: 0 1px 3px #0003;
-  line-height: 1;
-  font-size: 22px;
-  overflow: hidden;
-}
-.flag-CN {
-  background: #bc393c;
-  color: #f9d878;
-  font-size: 15px;
-  justify-items: start;
-  padding-left: 3px;
-}
-.flag-US {
-  background: repeating-linear-gradient(
-    to bottom,
-    #a85459 0 1.5px,
-    #d9d8ce 1.5px 3px
-  );
-  color: #fff;
-  font-size: 15px;
-  position: relative;
-}
-.flag-US:before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 13px;
-  height: 11px;
-  background: #384d6c;
-}
-.flag-US {
-  isolation: isolate;
-}
-.flag-US:before {
-  z-index: -1;
+  object-fit: contain;
+  vertical-align: middle;
 }
 .sidebar {
   width: 218px;
@@ -329,7 +294,6 @@ svg {
 }
 .nation-badge .flag {
   width: 31px;
-  height: 22px;
 }
 .nation-badge > div {
   flex: 1;
@@ -1701,7 +1665,6 @@ svg {
 }
 .selected-country .flag {
   width: 44px;
-  height: 29px;
 }
 .selected-country > div {
   flex: 1;
@@ -2032,8 +1995,6 @@ svg {
 }
 .country-option-top .flag {
   width: 46px;
-  height: 30px;
-  font-size: 25px;
 }
 .country-option-top > span:last-child {
   font-size: 10px;
@@ -3441,8 +3402,6 @@ svg {
   }
   .locked-countries .flag {
     width: 24px;
-    height: 17px;
-    font-size: 18px;
   }
   .choose-bottom {
     align-items: flex-start;

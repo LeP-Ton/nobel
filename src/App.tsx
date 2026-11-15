@@ -194,21 +194,13 @@ function Bar({ value, color }: { value: number; color?: string }) {
     </div>
   );
 }
-function Flag({ country }: { country: Pick<Country, "id" | "flag"> }) {
+function Flag({ country }: { country: Pick<Country, "id" | "name"> }) {
   return (
-    <span
-      className={`flag flag-${country.id}`}
-      role="img"
-      aria-label={country.id}
-    >
-      {country.id === "CN"
-        ? "★"
-        : country.id === "US"
-          ? "✦"
-          : country.id === "IN"
-            ? "☸"
-            : ""}
-    </span>
+    <img
+      className="flag"
+      src={`/assets/flags/${country.id.toLowerCase()}.svg`}
+      alt={`${country.name}国旗`}
+    />
   );
 }
 function App() {

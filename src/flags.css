@@ -1,62 +1,3 @@
-/* 用矢量样式显示国旗，避免 Windows 的地区字母回退。 */
-.flag-DE {
-  background: linear-gradient(
-    #25272a 0 33.33%,
-    #af4144 33.33% 66.66%,
-    #d5b462 66.66%
-  );
-}
-.flag-FR {
-  background: linear-gradient(
-    90deg,
-    #405c8f 0 33.33%,
-    #e0e1d9 33.33% 66.66%,
-    #b84d53 66.66%
-  );
-}
-.flag-JP {
-  background:
-    radial-gradient(circle at center, #b84650 0 30%, transparent 32%), #e3e3dc;
-}
-.flag-GB {
-  background:
-    linear-gradient(0deg, transparent 39%, #b04b53 39% 61%, transparent 61%),
-    linear-gradient(90deg, transparent 42%, #b04b53 42% 58%, transparent 58%),
-    linear-gradient(0deg, transparent 32%, #d9ddd7 32% 68%, transparent 68%),
-    linear-gradient(90deg, transparent 34%, #d9ddd7 34% 66%, transparent 66%),
-    linear-gradient(32deg, transparent 45%, #d9ddd7 45% 55%, transparent 55%),
-    linear-gradient(-32deg, transparent 45%, #d9ddd7 45% 55%, transparent 55%),
-    #354d79;
-}
-.flag-KR {
-  position: relative;
-  background: #e2e3dc;
-}
-.flag-KR::before {
-  content: "";
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: linear-gradient(#b54c52 50%, #426b92 50%);
-  transform: rotate(28deg);
-}
-.flag-KR::after {
-  content: "";
-  position: absolute;
-  inset: 4px 3px;
-  border-left: 2px solid #30353b;
-  border-right: 2px solid #30353b;
-  transform: rotate(22deg);
-}
-.flag-IN {
-  background: linear-gradient(
-    #d49b52 0 33.33%,
-    #e2e2d8 33.33% 66.66%,
-    #558870 66.66%
-  );
-  color: #375a8b;
-  font-size: 11px;
-}
 .ranking-select {
   background: #172c38;
   color: #a9c5d1;
@@ -65,6 +6,4 @@
   border-radius: 3px;
   font-size: 10px;
   max-width: 150px;
-}
-@media (max-width: 740px) {
 }
